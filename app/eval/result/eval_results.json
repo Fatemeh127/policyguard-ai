@@ -1,0 +1,52 @@
+{
+  "results": [
+    {
+      "question": "#How many days of annual leave do employees get?",
+      "answer": "Annual leave depends on your country and company policy. In many European countries, including Finland, employees typically receive about 24–30 days of paid annual leave per year. Always check your employment contract or HR handbook for the exact amount. (Source 1)",
+      "recall@k": 1.0,
+      "mrr": 1.0,
+      "semantic_similarity": 0.241,
+      "faithfulness": 0.674,
+      "latency": 3.935,
+      "llm_judge_score": "I don't have enough information to answer this question based on the available documents."
+    },
+    {
+      "question": "#What is the sick leave policy?",
+      "answer": "I don't have enough information to answer this question based on the available documents.",
+      "recall@k": 1.0,
+      "mrr": 1.0,
+      "semantic_similarity": 0.03,
+      "faithfulness": 0.119,
+      "latency": 2.59,
+      "llm_judge_score": "I don't have enough information to answer this question based on the available documents."
+    },
+    {
+      "question": "Can I work remotely full-time?",
+      "answer": "This depends on your company's remote work policy and your role. Some companies allow full-time remote work, others require hybrid or office-based attendance. Confirm with your manager or HR department. (Source 1)",
+      "recall@k": 1.0,
+      "mrr": 1.0,
+      "semantic_similarity": 0.273,
+      "faithfulness": 0.319,
+      "latency": 2.016,
+      "llm_judge_score": "I don't have enough information to answer this question based on the available documents."
+    },
+    {
+      "question": "How do I request time off?",
+      "answer": "I don't have enough information to answer this question based on the available documents.",
+      "recall@k": 1.0,
+      "mrr": 1.0,
+      "semantic_similarity": 0.083,
+      "faithfulness": 0.119,
+      "latency": 0.993,
+      "llm_judge_score": "I don't have enough information to answer this question based on the available documents."
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "avg_recall@k": 1.0,
+    "avg_mrr": 1.0,
+    "avg_semantic": 0.15675,
+    "avg_faithfulness": 0.30775,
+    "avg_latency": 2.3835
+  }
+}

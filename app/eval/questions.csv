@@ -1,0 +1,5 @@
+question,role,expected_contains,expected_sources
+#How many days of annual leave do employees get?,employee,25 days,default_handbook
+#What is the sick leave policy?,employee,sick leave,default_handbook
+Can I work remotely full-time?,employee,office,default_handbook
+How do I request time off?,employee,request,default_handbook
