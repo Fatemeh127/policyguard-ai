@@ -9,6 +9,7 @@ from app.core.logging import get_logger
 from app.observability.trace_logger import TraceLogger
 from app.llm.safety import check_content_safety, filter_harmful_content
 from app.retrieval.vector_store import VectorStore
+from app.api.deps import get_vector_store
 from app.retrieval.retriever import retrieve_chunks_with_metadata
 from app.llm.answer_service import generate_answer
 from app.schemas.ask import AskResponse
@@ -19,7 +20,7 @@ logger = get_logger(__name__)
 class RAGPipeline:
 
     def __init__(self, vector_store: Optional[VectorStore] = None):
-        self.vector_store = vector_store or VectorStore()
+        self.vector_store = vector_store or get_vector_store()
 
     # Prompt Injection Detection
     def _is_prompt_injection(self, query: str) -> bool:

@@ -86,7 +86,7 @@ def upload_document(
         }
 
         response = requests.post(
-            f"{API_BASE_URL}/api/ask",
+            f"{API_BASE_URL}/api/ingest",
             files=files,
             data=data,
             headers={
@@ -188,31 +188,55 @@ def display_answer(response: Optional[Dict[str, Any]]):
     with col4:
         st.metric(
             "Context",
-            "✅" if response.get("context_used") else "❌"
+            "Yes" if response.get("context_used") else "No"
         )
 
     # Sources
     sources = response.get("sources", [])
 
     if sources:
-        st.markdown("###  Sources")
+        st.markdown("### Sources")
 
         for i, source in enumerate(sources, 1):
 
-            st.markdown(
-                f"""
-                <div class="source-box">
-                    <b>Source {i}</b><br><br>
+            html = f"""
+            <div style="
+                padding:15px;
+                border-radius:10px;
+                background-color:#f5f5f5;
+                margin-bottom:10px;
+            ">
+                <b>Source {i}</b><br><br>
 
-                    <b>Document:</b> {source.get("document_id", "Unknown")}<br>
+                <b>Document:</b> {source.get("document_id", "Unknown")}<br>
 
-                    <b>Chunk ID:</b> {source.get("chunk_id", "N/A")}<br>
+                <b>Chunk ID:</b> {source.get("chunk_id", "N/A")}<br>
 
-                    <b>Score:</b> {source.get("score", 0):.3f}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                <b>Score:</b> {source.get("score", 0):.3f}
+            </div>
+            """
+
+            st.markdown(html, unsafe_allow_html=True)
+
+    # if sources:
+    #     st.markdown("###  Sources")
+
+    #     for i, source in enumerate(sources, 1):
+
+    #         st.markdown(
+    #             f"""
+    #             <div class="source-box">
+    #                 <b>Source {i}</b><br><br>
+
+    #                 <b>Document:</b> {source.get("document_id", "Unknown")}<br>
+
+    #                 <b>Chunk ID:</b> {source.get("chunk_id", "N/A")}<br>
+
+    #                 <b>Score:</b> {source.get("score", 0):.3f}
+    #             </div>
+    #             """,
+    #             unsafe_allow_html=True
+    #         )
 
 
 # Health Status
@@ -249,13 +273,13 @@ def display_health_status():
                     st.text(f"{emoji} {name.title()}: {comp_status}")
 
                 else:
-                    st.text(f"ℹ️ {name.title()}: {info}")
+                    st.text(f"{name.title()}: {info}")
 
         else:
-            st.error("❌ API Unreachable")
+            st.error("API Unreachable")
 
     except Exception:
-        st.error("❌ Cannot connect to API")
+        st.error("Cannot connect to API")
 
 
 # Main App
@@ -331,9 +355,9 @@ def main():
                         )
 
                         if success:
-                            st.success("✅ Upload successful")
+                            st.success("Upload successful")
                         else:
-                            st.error("❌ Upload failed")
+                            st.error("Upload failed")
 
         st.divider()
 

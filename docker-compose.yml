@@ -117,6 +117,8 @@ services:
       - ./app:/app/app
       - ./data:/app/data
       - ./.env:/app/.env
+    env_file:
+      - .env
     environment:
       - QDRANT_URL=http://qdrant:6333
       - REDIS_URL=redis://redis:6379

@@ -1,52 +1,52 @@
 {
   "results": [
     {
-      "question": "#How many days of annual leave do employees get?",
-      "answer": "Annual leave depends on your country and company policy. In many European countries, including Finland, employees typically receive about 24–30 days of paid annual leave per year. Always check your employment contract or HR handbook for the exact amount. (Source 1)",
+      "question": "How many days of annual leave do employees get?",
+      "answer": "Employees receive 25 days of paid annual leave per calendar year, in addition to public holidays. (Source 1 and Source 2)",
       "recall@k": 1.0,
-      "mrr": 1.0,
-      "semantic_similarity": 0.241,
-      "faithfulness": 0.674,
-      "latency": 3.935,
-      "llm_judge_score": "I don't have enough information to answer this question based on the available documents."
+      "mrr": 0.5,
+      "semantic_similarity": 0.918,
+      "faithfulness": 0.603,
+      "latency": 2.117,
+      "llm_judge_score": null
     },
     {
-      "question": "#What is the sick leave policy?",
+      "question": "What is the sick leave policy?",
       "answer": "I don't have enough information to answer this question based on the available documents.",
       "recall@k": 1.0,
-      "mrr": 1.0,
-      "semantic_similarity": 0.03,
-      "faithfulness": 0.119,
-      "latency": 2.59,
-      "llm_judge_score": "I don't have enough information to answer this question based on the available documents."
+      "mrr": 0.5,
+      "semantic_similarity": 0.161,
+      "faithfulness": 0.11,
+      "latency": 1.263,
+      "llm_judge_score": null
     },
     {
       "question": "Can I work remotely full-time?",
-      "answer": "This depends on your company's remote work policy and your role. Some companies allow full-time remote work, others require hybrid or office-based attendance. Confirm with your manager or HR department. (Source 1)",
+      "answer": "Yes, eligible employees may work remotely full-time depending on their role, department requirements, and manager approval. Employees are expected to maintain reliable internet access, attend virtual meetings, and comply with company security policies while working remotely. (Source 1, Source 2)",
       "recall@k": 1.0,
-      "mrr": 1.0,
-      "semantic_similarity": 0.273,
-      "faithfulness": 0.319,
-      "latency": 2.016,
-      "llm_judge_score": "I don't have enough information to answer this question based on the available documents."
+      "mrr": 0.5,
+      "semantic_similarity": 0.866,
+      "faithfulness": 0.554,
+      "latency": 2.181,
+      "llm_judge_score": null
     },
     {
       "question": "How do I request time off?",
-      "answer": "I don't have enough information to answer this question based on the available documents.",
+      "answer": "You should submit your leave requests through the HR portal and get approval from your manager in advance. (Source 1 and Source 2)",
       "recall@k": 1.0,
-      "mrr": 1.0,
-      "semantic_similarity": 0.083,
-      "faithfulness": 0.119,
-      "latency": 0.993,
-      "llm_judge_score": "I don't have enough information to answer this question based on the available documents."
+      "mrr": 0.5,
+      "semantic_similarity": 0.859,
+      "faithfulness": 0.495,
+      "latency": 0.949,
+      "llm_judge_score": null
     }
   ],
   "summary": {
     "total": 4,
     "avg_recall@k": 1.0,
-    "avg_mrr": 1.0,
-    "avg_semantic": 0.15675,
-    "avg_faithfulness": 0.30775,
-    "avg_latency": 2.3835
+    "avg_mrr": 0.5,
+    "avg_semantic": 0.701,
+    "avg_faithfulness": 0.4405,
+    "avg_latency": 1.6275
   }
 }

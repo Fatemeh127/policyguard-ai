@@ -22,7 +22,9 @@ dependencies = [
     "python-jose[cryptography]>=3.3.0", 
     "passlib[bcrypt]>=1.7.4",            
     "python-multipart>=0.0.6", 
-    "sentence-transformers>=3.0.1"
+    "sentence-transformers>=3.0.1",
+    "pytest>=8.0.0"
+
 ]
 
 [project.optional-dependencies]
@@ -39,5 +41,5 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["app*", "ui*", "scripts*"]
-exclude = ["data*", "tests*"]
+include = ["app*", "ui*", "scripts*", "data*"]
+exclude = ["tests*"]

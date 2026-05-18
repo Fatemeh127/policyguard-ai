@@ -1,36 +1,41 @@
-"""DOCX document loader using python-docx."""
-from docx import Document
+"""Production-ready DOCX text extractor using python-docx."""
 from pathlib import Path
+from docx import Document
 
 
 def load_docx(file_path: str) -> str:
-    """
-    Extract text from a DOCX file.
-    
-    Args:
-        file_path: Path to the DOCX file
-        
-    Returns:
-        Extracted text as a single string
-        
-    Raises:
-        FileNotFoundError: If the file doesn't exist
-        ValueError: If the DOCX is corrupted or invalid
-    """
     path = Path(file_path)
-    
-    # Check if file exists
+
     if not path.exists():
         raise FileNotFoundError(f"DOCX file not found: {file_path}")
-    
+
     try:
-        doc = Document(file_path)
-        paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
-        
-        # Join paragraphs with newline
-        full_text = "\n".join(paragraphs)
-        
-        return full_text.strip()
-        
+        doc = Document(path)
+        text_parts = []
+
+        def add_text(text: str):
+            text = text.strip()
+            if text and text not in text_parts:
+                text_parts.append(text)
+
+        # 1. Paragraphs
+        for p in doc.paragraphs:
+            add_text(p.text)
+
+        # 2. Tables
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    add_text(cell.text)
+
+        text = "\n".join(text_parts).strip()
+
+        if not text:
+            raise ValueError(
+                "No extractable text found in DOCX (may contain only images/shapes)."
+            )
+
+        return text
+
     except Exception as e:
-        raise ValueError(f"Error reading DOCX: {e}")
+        raise ValueError(f"Failed to read DOCX file: {e}") from e

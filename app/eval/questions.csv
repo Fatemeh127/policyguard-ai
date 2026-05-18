@@ -1,5 +1,5 @@
 question,role,expected_contains,expected_sources
-#How many days of annual leave do employees get?,employee,25 days,default_handbook
-#What is the sick leave policy?,employee,sick leave,default_handbook
-Can I work remotely full-time?,employee,office,default_handbook
-How do I request time off?,employee,request,default_handbook
+How many days of annual leave do employees get?,employee,Employees receive 25 days of paid annual leave per calendar year,default_handbook.pdf
+What is the sick leave policy?,employee,Employees are entitled to sick leave with full pay,default_handbook.pdf
+Can I work remotely full-time?,employee,eligible employees may work remotely full-time depending on their role,default_handbook.pdf
+How do I request time off?,employee,submit leave requests through the HR portal and approved by the manager,default_handbook.pdf
