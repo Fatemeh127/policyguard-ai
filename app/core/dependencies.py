@@ -1,17 +1,17 @@
 """FastAPI dependencies for authentication."""
 
 import logging
-from typing import Optional
+
 from fastapi import Header, HTTPException, status
 
-from app.core.security import verify_api_key
 from app.core.config import settings
+from app.core.security import verify_api_key
 
 logger = logging.getLogger(__name__)
 
 
 async def get_current_role(
-    x_api_key: Optional[str] = Header(None, description="API key for authentication")
+    x_api_key: str | None = Header(None, description="API key for authentication")
 ) -> str:
     """
     Dependency to verify API key and get user role.

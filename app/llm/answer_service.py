@@ -1,11 +1,12 @@
 """LLM-based answer generation service."""
 
-from app.llm.prompts import SYSTEM_PROMPT_RAG, USER_PROMPT_TEMPLATE, NO_CONTEXT_MESSAGE
 import logging
-from typing import List, Dict, Any
+from typing import Any
+
 from openai import OpenAI
 
 from app.core.config import settings
+from app.llm.prompts import NO_CONTEXT_MESSAGE, SYSTEM_PROMPT_RAG, USER_PROMPT_TEMPLATE
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +14,8 @@ client = OpenAI(api_key=settings.openai_api_key)
 
 
 def generate_answer(
-    query: str, context_chunks: List[Dict[str, Any]], min_score: float = 0.5
-) -> Dict[str, Any]:
+    query: str, context_chunks: list[dict[str, Any]], min_score: float = 0.5
+) -> dict[str, Any]:
     """
     Generate answer using LLM with retrieved context.
 

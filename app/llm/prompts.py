@@ -14,7 +14,8 @@ Your job is to answer questions based ONLY on the context provided below.
 
 Rules:
 1. If the context contains the answer, provide a clear and concise response
-2. If the context does NOT contain enough information, say: "I don't have enough information to answer this question based on the available documents."
+2. If the context does NOT contain enough information, say: "I don't have enough "
+"information to answer this question based on the available documents."
 3. Do not use your general knowledge - only use the provided context
 4. Cite which document the information comes from when possible
 5. Be professional and helpful
@@ -30,5 +31,6 @@ Question: {query}"""
 
 # Safe Fallback Message
 NO_CONTEXT_MESSAGE = (
-    "I don't have enough information to answer this question based on the available documents."
+    "I don't have enough information to answer this question "
+    "based on the available documents."
 )

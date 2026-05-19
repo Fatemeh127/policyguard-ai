@@ -1,10 +1,10 @@
 """Retrieve relevant chunks from the vector store for a given query."""
 
-from typing import List, Dict, Any
 import logging
+from typing import Any
 
-from app.retrieval.vector_store import VectorStore
 from app.retrieval.filter import apply_filters
+from app.retrieval.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def _search_vector_store(
     query: str, vector_store: VectorStore, role: str, top_k: int
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Safe wrapper around vector store search.
     Ensures error handling and consistent output.
@@ -32,8 +32,8 @@ def _search_vector_store(
 
 
 def _apply_retrieval_pipeline(
-    results: List[Dict[str, Any]], min_score: float
-) -> List[Dict[str, Any]]:
+    results: list[dict[str, Any]], min_score: float
+) -> list[dict[str, Any]]:
     """
     Standard RAG retrieval post-processing:
     1. Deduplicate  — remove duplicate chunks
@@ -59,7 +59,7 @@ def retrieve_chunks(
     role: str = "employee",
     top_k: int = 5,
     min_score: float = 0.5,
-) -> List[str]:
+) -> list[str]:
     """
     Returns clean text chunks ready for LLM context.
 
@@ -83,7 +83,7 @@ def retrieve_chunks(
 
 def retrieve_chunks_with_metadata(
     query: str, vector_store: VectorStore, role: str, top_k: int = 5, min_score: float = 0.6
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
 
     results = _search_vector_store(query, vector_store, role, top_k)
 

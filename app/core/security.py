@@ -2,11 +2,10 @@
 
 import logging
 import secrets
-from typing import Optional
 from datetime import datetime, timedelta
 
-from passlib.context import CryptContext
 from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 from app.core.config import settings
 
@@ -21,7 +20,7 @@ ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 
-def verify_api_key(api_key: str) -> Optional[str]:
+def verify_api_key(api_key: str) -> str | None:
     """
     Verify API key and return associated role.
 
@@ -78,7 +77,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """
     Create a JWT access token.
 
@@ -97,12 +96,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-    return encoded_jwt
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def decode_access_token(token: str) -> Optional[dict]:
+def decode_access_token(token: str) -> dict | None:
     """
     Decode and verify a JWT token.
 
@@ -113,8 +111,7 @@ def decode_access_token(token: str) -> Optional[dict]:
         Decoded token data if valid, None if invalid
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError as e:
         logger.warning("Invalid token: %s", e)
         return None

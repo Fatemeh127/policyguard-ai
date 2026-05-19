@@ -3,7 +3,6 @@ Professional trace logger for request-level observability.
 """
 
 import time
-from typing import Optional, Dict, Any
 from contextlib import contextmanager
 
 from app.core.logging import get_logger
@@ -71,7 +70,7 @@ class TraceLogger:
             raise
 
     # Specialized helpers (RAG)
-    def log_retrieval(self, num_chunks: int, max_score: Optional[float]):
+    def log_retrieval(self, num_chunks: int, max_score: float | None):
         self.info(
             "retrieval_result",
             chunks=num_chunks,

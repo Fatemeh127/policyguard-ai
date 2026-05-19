@@ -1,6 +1,7 @@
 """Production-ready DOCX text extractor using python-docx."""
 
 from pathlib import Path
+
 from docx import Document
 
 

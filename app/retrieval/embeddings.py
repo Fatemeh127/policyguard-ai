@@ -1,7 +1,7 @@
 """OpenAI embeddings service."""
 
 import logging
-from typing import List
+
 from openai import OpenAI
 
 from app.core.config import settings
@@ -18,7 +18,7 @@ class EmbeddingError(Exception):
     pass
 
 
-def get_embedding(text: str) -> List[float]:
+def get_embedding(text: str) -> list[float]:
     """
     Convert text to embedding vector using OpenAI.
 

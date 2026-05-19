@@ -1,8 +1,8 @@
 """Content safety and filtering using moderation API."""
 
 import logging
-from typing import Optional
 import os
+
 from openai import OpenAI
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def check_content_safety(text: str) -> bool:
         return True
 
 
-def filter_harmful_content(query: str) -> Optional[str]:
+def filter_harmful_content(query: str) -> str | None:
     try:
         client = get_client()
 

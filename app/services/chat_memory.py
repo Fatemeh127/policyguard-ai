@@ -1,4 +1,5 @@
 import json
+
 from app.core.redis import get_redis_client
 
 redis_client = get_redis_client()

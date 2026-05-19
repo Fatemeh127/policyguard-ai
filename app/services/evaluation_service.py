@@ -3,16 +3,16 @@ Evaluation Service — unified retrieval + generation evaluation.
 """
 
 import time
-from typing import List, Dict, Any, Optional
+from typing import Any
 
-from app.retrieval.vector_store import VectorStore
-from app.retrieval.retriever import retrieve_chunks_with_metadata
 from app.llm.answer_service import generate_answer
+from app.retrieval.retriever import retrieve_chunks_with_metadata
+from app.retrieval.vector_store import VectorStore
 
 
 class EvaluationService:
 
-    def __init__(self, vector_store: Optional[VectorStore] = None):
+    def __init__(self, vector_store: VectorStore | None = None):
         self.vector_store = vector_store or VectorStore()
 
     # Simple scoring
@@ -34,7 +34,7 @@ class EvaluationService:
         role: str = "employee",
         top_k: int = 5,
         min_score: float = 0.5,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
 
         # Retrieval
         chunks = retrieve_chunks_with_metadata(
@@ -67,11 +67,11 @@ class EvaluationService:
     # Full evaluation
     def run_evaluation(
         self,
-        dataset: List[Dict[str, str]],
+        dataset: list[dict[str, str]],
         role: str = "employee",
         top_k: int = 5,
         min_score: float = 0.5,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
 
         start = time.time()
 

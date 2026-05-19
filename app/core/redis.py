@@ -1,5 +1,6 @@
 # app/core/redis.py
 import redis
+
 from app.core.config import settings
 
 _redis_client = None

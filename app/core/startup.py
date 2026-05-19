@@ -1,16 +1,15 @@
 import logging
 from pathlib import Path
-from typing import List
 
-from app.ingestion.loaders.pdf_loader import load_pdf
-from app.ingestion.loaders.docx_loader import load_docx
-from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
 from app.api.deps import get_vector_store
+from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
+from app.ingestion.loaders.docx_loader import load_docx
+from app.ingestion.loaders.pdf_loader import load_pdf
 
 logger = logging.getLogger(__name__)
 
 
-def get_sample_documents(folder: str = "data/sample_docs") -> List[Path]:
+def get_sample_documents(folder: str = "data/sample_docs") -> list[Path]:
     sample_folder = Path(folder)
 
     if not sample_folder.exists():

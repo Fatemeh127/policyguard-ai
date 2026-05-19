@@ -1,24 +1,21 @@
 """
 Ask endpoint — production-grade RAG Q&A API.
 """
-
+import asyncio
 import logging
 import time
-import asyncio
-from typing import Optional
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Depends, Request, Response
-
-from app.schemas.ask import AskRequest, AskResponse
-from app.retrieval.vector_store import VectorStore
-from app.ingestion.pipeline import RAGPipeline
-from app.core.rate_limiter import limiter
-from app.core.dependencies import get_current_role
-from app.observability.usage_tracker import get_usage_tracker, UsageTracker
-
-from app.services.chat_memory import get_chat_history, save_chat_history
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app.api.deps import get_vector_store
+from app.core.dependencies import get_current_role
+from app.core.rate_limiter import limiter
+from app.ingestion.pipeline import RAGPipeline
+from app.observability.usage_tracker import UsageTracker, get_usage_tracker
+from app.retrieval.vector_store import VectorStore
+from app.schemas.ask import AskRequest, AskResponse
+from app.services.chat_memory import get_chat_history, save_chat_history
 
 vs = get_vector_store()
 
@@ -33,11 +30,10 @@ async def ask_question(
     request: Request,
     response: Response,
     ask_request: AskRequest,
-    vs: VectorStore = Depends(get_vector_store),
-    tracker: UsageTracker = Depends(get_usage_tracker),
-    user_role: str = Depends(get_current_role),
+    vs: Annotated[VectorStore, Depends(get_vector_store)],
+    tracker: Annotated[UsageTracker, Depends(get_usage_tracker)],
+    user_role: Annotated[str, Depends(get_current_role)],
 ) -> AskResponse:
-
     start_time = time.time()
 
     try:
@@ -108,8 +104,12 @@ async def ask_question(
         logger.exception("Ask endpoint failed")
 
         try:
-            tracker.track_request(endpoint="ask", latency_ms=(time.time() - start_time) * 1000)
-        except Exception:
-            pass
+            tracker.track_request(
+                endpoint="ask",
+                latency_ms=(time.time() - start_time) * 1000
+            )
+        except Exception as e:
+            logger.warning("Failed to track request: %s", e)
+        
 
         raise HTTPException(status_code=500, detail="Failed to process question") from exc

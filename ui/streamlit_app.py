@@ -1,8 +1,9 @@
 """Streamlit UI for PolicyGuard AI."""
 
-import streamlit as st
+from typing import Any
+
 import requests
-from typing import Dict, Any, Optional
+import streamlit as st
 
 # Configuration
 
@@ -90,7 +91,7 @@ def upload_document(file, document_id: str, role: str, api_key: str) -> bool:
 
 
 # Ask Question
-def ask_question(query: str, role: str, limit: int, api_key: str) -> Optional[Dict[str, Any]]:
+def ask_question(query: str, role: str, limit: int, api_key: str) -> dict[str, Any] | None:
     """Ask question via API."""
 
     try:
@@ -115,7 +116,7 @@ def ask_question(query: str, role: str, limit: int, api_key: str) -> Optional[Di
 
 
 # Display Answer
-def display_answer(response: Optional[Dict[str, Any]]):
+def display_answer(response: dict[str, Any] | None):
     """Display answer + metadata + sources."""
 
     if not response:
@@ -226,7 +227,7 @@ def display_health_status():
 
                     comp_status = info.get("status", "unknown")
 
-                    emoji = "✅" if comp_status == "healthy" or "configured" else "❌"
+                    emoji = "✅" if comp_status in ("healthy", "configured") else "❌"
 
                     st.text(f"{emoji} {name.title()}: {comp_status}")
 

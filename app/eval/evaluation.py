@@ -1,17 +1,16 @@
 """Production-grade RAG Evaluation Framework"""
 
+import csv
 import json
 import logging
-import csv
 import time
-from typing import List, Dict, Any
-
 from pathlib import Path
+from typing import Any
+
 from sentence_transformers import SentenceTransformer, util
 
-from app.retrieval.vector_store import VectorStore
-from app.llm.answer_service import generate_answer
 from app.api.deps import get_vector_store
+from app.llm.answer_service import generate_answer
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +19,11 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
 # Load dataset
-def load_eval_questions(csv_path: str = "app/eval/questions.csv") -> List[Dict[str, str]]:
-    questions: List[Dict[str, str]] = []
+def load_eval_questions(csv_path: str = "app/eval/questions.csv") -> list[dict[str, str]]:
+    questions: list[dict[str, str]] = []
 
     try:
-        with open(csv_path, "r", encoding="utf-8") as f:
+        with open(csv_path, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 questions.append(row)
@@ -38,7 +37,7 @@ def load_eval_questions(csv_path: str = "app/eval/questions.csv") -> List[Dict[s
 
 
 # Retrieval Metrics
-def recall_at_k(retrieved_ids: List[str], expected_ids: List[str]) -> float:
+def recall_at_k(retrieved_ids: list[str], expected_ids: list[str]) -> float:
     # Clean both lists: strip whitespace, lowercase, remove empty strings
     retrieved_ids = [r.strip().lower() for r in retrieved_ids if r.strip()]
     expected_ids = [e.strip().lower() for e in expected_ids if e.strip()]
@@ -55,7 +54,7 @@ def recall_at_k(retrieved_ids: List[str], expected_ids: List[str]) -> float:
     return len(retrieved & expected) / len(expected)
 
 
-def mrr(retrieved_ids: List[str], expected_id: str) -> float:
+def mrr(retrieved_ids: list[str], expected_id: str) -> float:
     if not expected_id:
         return 0.0
     for i, doc_id in enumerate(retrieved_ids):
@@ -84,7 +83,7 @@ def semantic_similarity(expected: str, answer: str) -> float:
     return util.cos_sim(model.encode(expected), model.encode(answer)).item()
 
 
-def faithfulness(answer: str, contexts: List[str]) -> float:
+def faithfulness(answer: str, contexts: list[str]) -> float:
 
     if not answer or not contexts:
         return 0.0
@@ -157,7 +156,7 @@ def llm_judge(question: str, expected: str, answer: str) -> int:
 
 
 # Main Evaluation
-def run_evaluation(questions: List[Dict[str, str]]) -> Dict[str, Any]:
+def run_evaluation(questions: list[dict[str, str]]) -> dict[str, Any]:
 
     vector_store = get_vector_store()
     results = []
@@ -239,7 +238,7 @@ def run_evaluation(questions: List[Dict[str, str]]) -> Dict[str, Any]:
 
 
 # Save results
-def save_results(data: Dict[str, Any], filename: str = "eval_results.json"):
+def save_results(data: dict[str, Any], filename: str = "eval_results.json"):
     path = Path(__file__).resolve().parent / "result"
     path.mkdir(exist_ok=True)
 

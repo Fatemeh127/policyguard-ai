@@ -8,16 +8,16 @@ Features:
 ✔ Latency tracking
 """
 
+import argparse
 import json
 import logging
 import time
-from pathlib import Path
 from datetime import datetime
-import argparse
+from pathlib import Path
 
-from app.services.evaluation_service import EvaluationService
+from app.core.request_context import get_request_id, set_request_id
 from app.retrieval.vector_store import VectorStore
-from app.core.request_context import set_request_id, get_request_id
+from app.services.evaluation_service import EvaluationService
 
 # Logging setup
 logging.basicConfig(

@@ -6,17 +6,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.deps import get_vector_store
+
+# Import and include routers
+from app.api.routes import ask, eval, health, ingest
+from app.api.routes import metrics as metrics_route
 from app.core.config import settings
 from app.core.logging import setup_logging
-
-from app.api.routes import ask, eval
-from app.observability.prometheus_metrics import PrometheusMiddleware, metrics_endpoint
-
-from app.middleware.request_id import RequestIDMiddleware
-
-from app.api.deps import get_vector_store
-from app.ingestion.loaders.pdf_loader import load_pdf
 from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
+from app.ingestion.loaders.pdf_loader import load_pdf
+from app.middleware.request_id import RequestIDMiddleware
+from app.observability.prometheus_metrics import PrometheusMiddleware, metrics_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -93,8 +93,7 @@ async def root():
     return {"message": "PolicyGuard AI API", "version": "0.1.0", "status": "running"}
 
 
-# Import and include routers
-from app.api.routes import health, ask, ingest, metrics as metrics_route
+
 
 app.include_router(health.router, prefix="/api", tags=["Health"])
 app.include_router(ask.router, prefix="/api", tags=["Q&A"])

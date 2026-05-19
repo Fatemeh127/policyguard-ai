@@ -16,8 +16,8 @@
 # except Exception as e:
 #     print(f"❌ Failed: {e}")
 
-from app.ingestion.loaders.pdf_loader import load_pdf
 from app.ingestion.loaders.docx_loader import load_docx
+from app.ingestion.loaders.pdf_loader import load_pdf
 
 print("=== Test 1: Non-existent files ===")
 try:

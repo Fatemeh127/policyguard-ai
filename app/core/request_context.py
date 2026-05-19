@@ -1,16 +1,15 @@
 """Request context tracking."""
 
 import contextvars
-from typing import Optional
 from uuid import uuid4
 
 # Context variable for request ID
-request_id_context: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+request_id_context: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "request_id", default=None
 )
 
 
-def get_request_id() -> Optional[str]:
+def get_request_id() -> str | None:
     """
     Get current request ID.
 

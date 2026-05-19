@@ -2,14 +2,13 @@
 
 import logging
 import time
+from typing import Any
+
 from fastapi import APIRouter
-from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
 
 from app.core.config import settings
 from app.retrieval.vector_store import VectorStore
-
-from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -21,7 +20,7 @@ vector_store = VectorStore()
 
 
 @router.get("/health")
-async def health_check() -> Dict[str, Any]:
+async def health_check() -> dict[str, Any]:
     """
     System health check endpoint.
     Checks core dependencies without heavy computation.
@@ -42,7 +41,7 @@ async def health_check() -> Dict[str, Any]:
     except UnexpectedResponse as e:
         logger.error("Qdrant responded with error: %s", e)
 
-    except Exception as e:
+    except Exception:
         logger.exception("Qdrant health check failed")
 
     # OpenAI config check

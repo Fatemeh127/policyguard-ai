@@ -1,9 +1,10 @@
+import logging
+from uuid import uuid4
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-import logging
 
 from app.core.request_context import set_request_id
-from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 

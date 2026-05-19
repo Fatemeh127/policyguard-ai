@@ -2,13 +2,12 @@
 """Eval endpoint — run retrieval quality evaluation via API."""
 
 import logging
+
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
-from typing import List, Optional
 
 from app.retrieval.vector_store import VectorStore
+from app.schemas.eval import EvalRequest
 from app.services.evaluation_service import EvaluationService
-from app.schemas.eval import EvalCase, EvalCaseResult, EvalRequest, EvalResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

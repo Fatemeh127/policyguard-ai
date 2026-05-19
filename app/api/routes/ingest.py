@@ -1,16 +1,16 @@
 import logging
-import tempfile
 import os
+import tempfile
 import uuid
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-from app.schemas.ingest import IngestResponse
-from app.ingestion.loaders.pdf_loader import load_pdf
-from app.ingestion.loaders.docx_loader import load_docx
-from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
-from app.retrieval.vector_store import VectorStore
 from app.api.deps import get_vector_store
+from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
+from app.ingestion.loaders.docx_loader import load_docx
+from app.ingestion.loaders.pdf_loader import load_pdf
+from app.retrieval.vector_store import VectorStore
+from app.schemas.ingest import IngestResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -33,7 +33,10 @@ async def ingest_document(
 
     except Exception as exc:
         logger.exception("File read failed")
-        raise HTTPException(400, f"Failed to read file: {str(exc)}")
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to read file"
+        ) from exc
 
     tmp_path = None
 
@@ -41,6 +44,7 @@ async def ingest_document(
         suffix = os.path.splitext(file.filename)[1].lower()
 
         if suffix not in [".pdf", ".docx"]:
+            
             raise HTTPException(400, "Only PDF and DOCX supported")
 
         # unique document id
@@ -69,13 +73,19 @@ async def ingest_document(
     except HTTPException:
         raise
 
-    except Exception as exc:
-        logger.exception("Ingestion failed")
-        raise HTTPException(500, "Document ingestion failed")
+    except Exception as e:
+        logger.exception("Ingestion failed for request")
 
+        raise HTTPException(
+            status_code=500,
+            detail="Document ingestion failed"
+        ) from e
+    
     finally:
         if tmp_path and os.path.exists(tmp_path):
             try:
                 os.unlink(tmp_path)
-            except Exception:
+            except FileNotFoundError:
                 pass
+            except Exception as e:
+                logger.warning("Failed to delete temp file: %s", e)

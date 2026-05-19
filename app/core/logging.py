@@ -1,7 +1,6 @@
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
-from typing import Optional
 
 from app.core.config import settings
 from app.core.request_context import get_request_id
@@ -17,7 +16,7 @@ class RequestIDFilter(logging.Filter):
         return True
 
 
-def setup_logging(log_level: Optional[str] = None) -> None:
+def setup_logging(log_level: str | None = None) -> None:
     """
     Configure application-wide logging with:
     - Console logging

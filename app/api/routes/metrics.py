@@ -1,10 +1,11 @@
 """Metrics endpoint for usage tracking."""
 
 import logging
+
 from fastapi import APIRouter, Depends
 
+from app.observability.usage_tracker import UsageTracker, get_usage_tracker
 from app.retrieval.vector_store import VectorStore
-from app.observability.usage_tracker import get_usage_tracker, UsageTracker
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

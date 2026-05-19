@@ -2,17 +2,17 @@
 
 import logging
 import uuid
-from typing import List, Dict, Any
+from typing import Any
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
-    MatchAny,
-    VectorParams,
-    PointStruct,
-    Filter,
     FieldCondition,
+    Filter,
+    MatchAny,
     MatchValue,
+    PointStruct,
+    VectorParams,
 )
 
 from app.core.config import settings
@@ -50,7 +50,7 @@ class VectorStore:
             logger.exception("Failed to ensure collection exists")
             raise RuntimeError("Vector store initialization failed") from exc
 
-    def add_documents(self, chunks: List[Dict[str, Any]], document_id: str, role: str) -> int:
+    def add_documents(self, chunks: list[dict[str, Any]], document_id: str, role: str) -> int:
         """Add document chunks to vector store."""
 
         points = []
@@ -93,8 +93,8 @@ class VectorStore:
             raise RuntimeError("Vector store insertion failed") from exc
 
     def search(
-        self, query: str, role: str, limit: int = 5, document_ids: List[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, query: str, role: str, limit: int = 5, document_ids: list[str] = None
+    ) -> list[dict[str, Any]]:
         """Search for similar chunks with role + optional document filtering."""
 
         query_vector = get_embedding(query)

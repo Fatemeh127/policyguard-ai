@@ -2,13 +2,13 @@
 
 """Filter and rerank retrieved chunks before sending to LLM."""
 
-from typing import List, Dict, Any, Optional
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def deduplicate(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def deduplicate(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Remove duplicate chunks by text.
     Keeps the highest-score version of each duplicate.
@@ -32,7 +32,7 @@ def deduplicate(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return deduped
 
 
-def filter_by_score(results: List[Dict[str, Any]], min_score: float = 0.5) -> List[Dict[str, Any]]:
+def filter_by_score(results: list[dict[str, Any]], min_score: float = 0.5) -> list[dict[str, Any]]:
     """
     Drop chunks below relevance threshold.
     """
@@ -44,8 +44,8 @@ def filter_by_score(results: List[Dict[str, Any]], min_score: float = 0.5) -> Li
 
 
 def filter_by_document(
-    results: List[Dict[str, Any]], document_id: Optional[str] = None
-) -> List[Dict[str, Any]]:
+    results: list[dict[str, Any]], document_id: str | None = None
+) -> list[dict[str, Any]]:
     """
     Keep only chunks from a specific document.
     If document_id is None, returns unchanged list.
@@ -61,12 +61,12 @@ def filter_by_document(
 
 
 def apply_filters(
-    results: List[Dict[str, Any]],
+    results: list[dict[str, Any]],
     *,
     min_score: float = 0.5,
-    document_id: Optional[str] = None,
+    document_id: str | None = None,
     dedup: bool = True,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Full filtering pipeline:
     1. deduplicate

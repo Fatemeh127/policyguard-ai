@@ -2,11 +2,11 @@
 
 import logging
 import math
-import redis
-
-from typing import Dict, Any
 from datetime import datetime
 from functools import cached_property
+from typing import Any
+
+import redis
 
 from app.core.config import settings
 
@@ -82,7 +82,7 @@ class UsageTracker:
         idx = min(math.ceil(len(sorted_data) * pct) - 1, len(sorted_data) - 1)
         return sorted_data[idx]
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Return observability metrics."""
         if not self.redis:
             return {"error": "redis unavailable"}

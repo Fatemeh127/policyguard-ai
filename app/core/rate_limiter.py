@@ -1,14 +1,11 @@
 """Rate limiting using Redis and SlowAPI."""
 
 import logging
-from typing import Callable
-from functools import wraps
 
+from fastapi import HTTPException, Request
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from fastapi import Request, HTTPException
-from redis import Redis
+from slowapi.util import get_remote_address
 
 from app.core.config import settings
 

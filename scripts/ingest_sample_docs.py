@@ -1,11 +1,16 @@
 """Script to ingest sample documents into the system."""
 
+import logging
 import sys
 import time
-import logging
-from pathlib import Path
-from typing import List, Dict, Any, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from typing import Any
+
+from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
+from app.ingestion.loaders.docx_loader import load_docx
+from app.ingestion.loaders.pdf_loader import load_pdf
+from app.retrieval.vector_store import VectorStore
 
 # --- Logging setup ---
 logging.basicConfig(
@@ -15,12 +20,6 @@ logger = logging.getLogger("ingestion")
 
 # --- Imports (project modules) ---
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from app.ingestion.loaders.pdf_loader import load_pdf
-from app.ingestion.loaders.docx_loader import load_docx
-from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
-from app.retrieval.vector_store import VectorStore
-
 
 # --- Retry decorator ---
 def retry(max_attempts=3, delay=1.0):
@@ -34,6 +33,7 @@ def retry(max_attempts=3, delay=1.0):
                     if attempt == max_attempts:
                         raise
                     time.sleep(delay * attempt)
+            raise RuntimeError("Unreachable code reached in retry wrapper")
 
         return wrapper
 
@@ -45,16 +45,15 @@ def retry(max_attempts=3, delay=1.0):
 def load_document(file_path: Path) -> str:
     if file_path.suffix.lower() == ".pdf":
         return load_pdf(str(file_path))
-    elif file_path.suffix.lower() == ".docx":
+    if file_path.suffix.lower() == ".docx":
         return load_docx(str(file_path))
-    else:
-        raise ValueError(f"Unsupported file type: {file_path}")
+    raise ValueError(f"Unsupported file type: {file_path}")
 
 
 # --- Processing logic ---
 def process_file(
     file_path: Path, vector_store: VectorStore, role: str, chunk_size: int, chunk_overlap: int
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     start_time = time.time()
 
     logger.info(f"Processing {file_path.name}")
@@ -68,13 +67,24 @@ def process_file(
     chunks = recursive_chunk_text(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     # Metadata
-    metadata = {
+    base_metadata = {
         "document_id": file_path.name,
         "source": str(file_path),
         "role": role,
         "timestamp": time.time(),
         "chunk_count": len(chunks),
     }
+
+    documents = []
+    for i, chunk in enumerate(chunks):
+        documents.append({
+            "text": chunk,
+            "metadata": {
+                **base_metadata,
+                "chunk_index": i,
+                "chunk_count": len(chunks)
+            }
+        })
 
     # Store
     count = vector_store.add_documents(chunks=chunks, document_id=file_path.name, role=role)
@@ -83,13 +93,17 @@ def process_file(
 
     logger.info(f"Done {file_path.name} | chunks={count} | {duration}s")
 
-    return {"file": file_path.name, "chunks": count, "duration": duration}
+    return {"file": file_path.name,
+            "chunks": count,
+            "duration": duration,
+            "document_id": base_metadata["document_id"]
+}
 
 
 # --- Main ingestion ---
 def ingest_documents(
     folder_path: str,
-    vector_store: Optional[VectorStore] = None,
+    vector_store: VectorStore | None = None,
     role: str = "employee",
     chunk_size: int = 1000,
     chunk_overlap: int = 200,

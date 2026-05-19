@@ -1,7 +1,9 @@
 """Tests for DOCX document loader."""
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from app.ingestion.loaders.docx_loader import load_docx
 
 

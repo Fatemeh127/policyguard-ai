@@ -2,25 +2,24 @@
 RAG pipeline — production-grade implementation with safety + tracing.
 """
 
-from typing import Optional, Tuple, List
 import time
 
-from app.core.logging import get_logger
-from app.observability.trace_logger import TraceLogger
-from app.llm.safety import check_content_safety, filter_harmful_content
-from app.retrieval.vector_store import VectorStore
 from app.api.deps import get_vector_store
-from app.retrieval.retriever import retrieve_chunks_with_metadata
-from app.llm.answer_service import generate_answer
-from app.schemas.ask import AskResponse
+from app.core.logging import get_logger
 from app.core.request_context import get_request_id
+from app.llm.answer_service import generate_answer
+from app.llm.safety import check_content_safety, filter_harmful_content
+from app.observability.trace_logger import TraceLogger
+from app.retrieval.retriever import retrieve_chunks_with_metadata
+from app.retrieval.vector_store import VectorStore
+from app.schemas.ask import AskResponse
 
 logger = get_logger(__name__)
 
 
 class RAGPipeline:
 
-    def __init__(self, vector_store: Optional[VectorStore] = None):
+    def __init__(self, vector_store: VectorStore | None = None):
         self.vector_store = vector_store or get_vector_store()
 
     # Prompt Injection Detection
@@ -37,7 +36,7 @@ class RAGPipeline:
         return any(p in q for p in patterns)
 
     # Main pipeline
-    def run(self, query: str, role: str, limit: int = 5) -> Tuple[AskResponse, List[dict]]:
+    def run(self, query: str, role: str, limit: int = 5) -> tuple[AskResponse, list[dict]]:
 
         trace = TraceLogger(component="RAGPipeline")
 
@@ -134,7 +133,8 @@ class RAGPipeline:
     # Fallback Response
     def _fallback(self) -> AskResponse:
         return AskResponse(
-            answer="I couldn't find enough relevant information to answer. Please try rephrasing your question.",
+            answer="I couldn't find enough relevant information to answer."
+            "Please try rephrasing your question.",
             sources=[],
             context_used=False,
             metadata={},

@@ -1,7 +1,9 @@
 """Tests for PDF document loader."""
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from app.ingestion.loaders.pdf_loader import load_pdf
 
 

@@ -92,7 +92,7 @@ select = [
     "UP",            # python upgrades
     "RET"            # return issues
 ]
-ignore = []
+ignore = ["B008"]
 
 
 # MYPY
