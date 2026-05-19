@@ -1,4 +1,5 @@
 """Tests for DOCX document loader."""
+
 import pytest
 from pathlib import Path
 from app.ingestion.loaders.docx_loader import load_docx
@@ -16,12 +17,12 @@ def test_load_docx_returns_string():
     sample_docs = Path("data/sample_docs")
     if not sample_docs.exists():
         pytest.skip("No sample documents found")
-    
+
     docx_files = list(sample_docs.glob("*.docx"))
     if not docx_files:
         pytest.skip("No DOCX files in sample_docs")
-    
+
     text = load_docx(str(docx_files[0]))
-    
+
     assert isinstance(text, str)
     assert len(text) > 0

@@ -32,8 +32,8 @@ def setup_logging(log_level: Optional[str] = None) -> None:
 
     # Formatter (includes request_id)
     formatter = logging.Formatter(
-        fmt='%(asctime)s | %(levelname)-8s | %(name)-25s | [%(request_id)s] | %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        fmt="%(asctime)s | %(levelname)-8s | %(name)-25s | [%(request_id)s] | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
 
     # Root logger
@@ -52,31 +52,23 @@ def setup_logging(log_level: Optional[str] = None) -> None:
         # File handler (optional)
         if getattr(settings, "log_file", None):
             file_handler = RotatingFileHandler(
-                settings.log_file,
-                maxBytes=10_000_000,   # 10MB
-                backupCount=5
+                settings.log_file, maxBytes=10_000_000, backupCount=5  # 10MB
             )
             file_handler.setFormatter(formatter)
             file_handler.addFilter(RequestIDFilter())
             root_logger.addHandler(file_handler)
 
     # Reduce noise from libraries
-    noisy_libs = getattr(settings, "noisy_loggers", [
-        "httpx",
-        "httpcore",
-        "urllib3",
-        "asyncio",
-        "multipart"
-    ])
+    noisy_libs = getattr(
+        settings, "noisy_loggers", ["httpx", "httpcore", "urllib3", "asyncio", "multipart"]
+    )
 
     for lib in noisy_libs:
         logging.getLogger(lib).setLevel(logging.WARNING)
 
     # Startup log
     root_logger.info(
-        "Logging configured | level=%s | environment=%s",
-        level_name,
-        settings.environment
+        "Logging configured | level=%s | environment=%s", level_name, settings.environment
     )
 
 

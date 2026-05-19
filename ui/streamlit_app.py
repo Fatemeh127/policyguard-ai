@@ -1,4 +1,5 @@
 """Streamlit UI for PolicyGuard AI."""
+
 import streamlit as st
 import requests
 from typing import Dict, Any, Optional
@@ -12,14 +13,11 @@ if st.sidebar.checkbox("Show Debug Info"):
     st.sidebar.info(f"Backend URL: {API_BASE_URL}")
 
 # Page Config
-st.set_page_config(
-    page_title="PolicyGuard AI",
-    page_icon="📚",
-    layout="wide"
-)
+st.set_page_config(page_title="PolicyGuard AI", page_icon="📚", layout="wide")
 
 # Custom CSS
-st.markdown("""
+st.markdown(
+    """
 <style>
 
 .main-header {
@@ -59,40 +57,26 @@ st.markdown("""
 }
 
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # Upload Document
-def upload_document(
-    file,
-    document_id: str,
-    role: str,
-    api_key: str
-) -> bool:
+def upload_document(file, document_id: str, role: str, api_key: str) -> bool:
     """Upload document to API."""
 
     try:
-        files = {
-            "file": (
-                file.name,
-                file.getvalue(),
-                file.type
-            )
-        }
+        files = {"file": (file.name, file.getvalue(), file.type)}
 
-        data = {
-            "document_id": document_id,
-            "role": role
-        }
+        data = {"document_id": document_id, "role": role}
 
         response = requests.post(
             f"{API_BASE_URL}/api/ingest",
             files=files,
             data=data,
-            headers={
-                "X-API-Key": api_key
-            },
-            timeout=120
+            headers={"X-API-Key": api_key},
+            timeout=120,
         )
 
         print("UPLOAD STATUS:", response.status_code)
@@ -106,26 +90,15 @@ def upload_document(
 
 
 # Ask Question
-def ask_question(
-    query: str,
-    role: str,
-    limit: int,
-    api_key: str
-) -> Optional[Dict[str, Any]]:
+def ask_question(query: str, role: str, limit: int, api_key: str) -> Optional[Dict[str, Any]]:
     """Ask question via API."""
 
     try:
         response = requests.post(
             f"{API_BASE_URL}/api/ask",
-            json={
-                "query": query,
-                "role": role,
-                "limit": limit
-            },
-            headers={
-                "X-API-Key": api_key
-            },
-            timeout=60
+            json={"query": query, "role": role, "limit": limit},
+            headers={"X-API-Key": api_key},
+            timeout=60,
         )
 
         if response.status_code == 200:
@@ -158,7 +131,7 @@ def display_answer(response: Optional[Dict[str, Any]]):
             {answer}
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     metadata = response.get("metadata", {})
@@ -168,28 +141,16 @@ def display_answer(response: Optional[Dict[str, Any]]):
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric(
-            "Chunks Used",
-            metadata.get("num_chunks_used", 0)
-        )
+        st.metric("Chunks Used", metadata.get("num_chunks_used", 0))
 
     with col2:
-        st.metric(
-            "Latency",
-            f"{metadata.get('latency_seconds', 0):.2f}s"
-        )
+        st.metric("Latency", f"{metadata.get('latency_seconds', 0):.2f}s")
 
     with col3:
-        st.metric(
-            "Model",
-            metadata.get("model", "N/A")
-        )
+        st.metric("Model", metadata.get("model", "N/A"))
 
     with col4:
-        st.metric(
-            "Context",
-            "Yes" if response.get("context_used") else "No"
-        )
+        st.metric("Context", "Yes" if response.get("context_used") else "No")
 
     # Sources
     sources = response.get("sources", [])
@@ -244,10 +205,7 @@ def display_health_status():
     """Display backend health."""
 
     try:
-        response = requests.get(
-            f"{API_BASE_URL}/api/health",
-            timeout=5
-        )
+        response = requests.get(f"{API_BASE_URL}/api/health", timeout=5)
 
         if response.status_code == 200:
 
@@ -286,14 +244,11 @@ def display_health_status():
 def main():
 
     # Header
-    st.markdown(
-        '<div class="main-header">📚 PolicyGuard AI</div>',
-        unsafe_allow_html=True
-    )
+    st.markdown('<div class="main-header">📚 PolicyGuard AI</div>', unsafe_allow_html=True)
 
     st.markdown(
         '<div class="sub-header">AI Document Assistant with Role-Based Access</div>',
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     # Sidebar
@@ -302,44 +257,25 @@ def main():
         st.header("⚙️ Settings")
 
         # API KEY
-        api_key = st.text_input(
-            "API Key",
-            type="password",
-            placeholder="Enter API key"
-        )
+        api_key = st.text_input("API Key", type="password", placeholder="Enter API key")
 
         # Role
-        role = st.selectbox(
-            "Your Role",
-            ["employee", "manager", "admin"]
-        )
+        role = st.selectbox("Your Role", ["employee", "manager", "admin"])
 
         st.divider()
 
         # Upload
         st.header("📤 Upload Document")
 
-        uploaded_file = st.file_uploader(
-            "Choose PDF or DOCX",
-            type=["pdf", "docx"]
-        )
+        uploaded_file = st.file_uploader("Choose PDF or DOCX", type=["pdf", "docx"])
 
         if uploaded_file:
 
-            document_id = st.text_input(
-                "Document ID",
-                value=uploaded_file.name
-            )
+            document_id = st.text_input("Document ID", value=uploaded_file.name)
 
-            doc_role = st.selectbox(
-                "Required Role",
-                ["employee", "manager", "admin"]
-            )
+            doc_role = st.selectbox("Required Role", ["employee", "manager", "admin"])
 
-            if st.button(
-                " Upload & Process",
-                use_container_width=True
-            ):
+            if st.button(" Upload & Process", use_container_width=True):
 
                 if not api_key:
                     st.warning("Please enter API key")
@@ -347,12 +283,7 @@ def main():
                 else:
                     with st.spinner("Uploading..."):
 
-                        success = upload_document(
-                            uploaded_file,
-                            document_id,
-                            doc_role,
-                            api_key
-                        )
+                        success = upload_document(uploaded_file, document_id, doc_role, api_key)
 
                         if success:
                             st.success("Upload successful")
@@ -372,31 +303,18 @@ def main():
     # Chat Area
     st.header(" Ask a Question")
 
-    with st.form(
-        "chat_form",
-        clear_on_submit=False
-    ):
+    with st.form("chat_form", clear_on_submit=False):
 
         query = st.text_input(
-            "Question",
-            placeholder="Ask about company policies...",
-            label_visibility="collapsed"
+            "Question", placeholder="Ask about company policies...", label_visibility="collapsed"
         )
 
         col1, col2 = st.columns([1, 5])
 
         with col1:
-            limit = st.number_input(
-                "Max Results",
-                min_value=1,
-                max_value=10,
-                value=5
-            )
+            limit = st.number_input("Max Results", min_value=1, max_value=10, value=5)
 
-        submitted = st.form_submit_button(
-            "Ask",
-            use_container_width=True
-        )
+        submitted = st.form_submit_button("Ask", use_container_width=True)
 
         if submitted:
 
@@ -410,19 +328,13 @@ def main():
 
                 with st.spinner("Thinking..."):
 
-                    response = ask_question(
-                        query=query,
-                        role=role,
-                        limit=limit,
-                        api_key=api_key
-                    )
+                    response = ask_question(query=query, role=role, limit=limit, api_key=api_key)
 
                     st.session_state.response = response
 
     # Render Response
-    display_answer(
-        st.session_state.response
-    )
+    display_answer(st.session_state.response)
+
 
 # Run App
 if __name__ == "__main__":

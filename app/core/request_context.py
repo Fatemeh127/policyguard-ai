@@ -1,4 +1,5 @@
 """Request context tracking."""
+
 import contextvars
 from typing import Optional
 from uuid import uuid4
@@ -12,7 +13,7 @@ request_id_context: contextvars.ContextVar[Optional[str]] = contextvars.ContextV
 def get_request_id() -> Optional[str]:
     """
     Get current request ID.
-    
+
     Returns:
         Request ID or generates new one
     """
@@ -26,7 +27,7 @@ def get_request_id() -> Optional[str]:
 def set_request_id(request_id: str) -> None:
     """
     Set request ID for current context.
-    
+
     Args:
         request_id: Request ID to set
     """

@@ -10,7 +10,7 @@ from app.ingestion.loaders.pdf_loader import load_pdf
 from app.ingestion.loaders.docx_loader import load_docx
 from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
 from app.retrieval.vector_store import VectorStore
-from app.api.deps import get_vector_store  
+from app.api.deps import get_vector_store
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -20,8 +20,8 @@ router = APIRouter()
 async def ingest_document(
     file: UploadFile = File(...),
     document_id: str = Form(...),
-    role: str = Form("employee"),  
-    vs: VectorStore = Depends(get_vector_store)
+    role: str = Form("employee"),
+    vs: VectorStore = Depends(get_vector_store),
 ):
     MAX_FILE_SIZE = 10 * 1024 * 1024
 
@@ -60,19 +60,11 @@ async def ingest_document(
         chunks = recursive_chunk_text(text, 1000, 200)
 
         # store
-        count = vs.add_documents(
-            chunks=chunks,
-            document_id=document_id,
-            role=role
-        )
+        count = vs.add_documents(chunks=chunks, document_id=document_id, role=role)
 
         logger.info("Ingest success | doc=%s | chunks=%d", document_id, count)
 
-        return IngestResponse(
-            document_id=document_id,
-            chunks_added=count,
-            status="success"
-        )
+        return IngestResponse(document_id=document_id, chunks_added=count, status="success")
 
     except HTTPException:
         raise

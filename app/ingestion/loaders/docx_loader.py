@@ -1,4 +1,5 @@
 """Production-ready DOCX text extractor using python-docx."""
+
 from pathlib import Path
 from docx import Document
 
@@ -31,9 +32,7 @@ def load_docx(file_path: str) -> str:
         text = "\n".join(text_parts).strip()
 
         if not text:
-            raise ValueError(
-                "No extractable text found in DOCX (may contain only images/shapes)."
-            )
+            raise ValueError("No extractable text found in DOCX (may contain only images/shapes).")
 
         return text
 

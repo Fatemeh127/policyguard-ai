@@ -1,4 +1,5 @@
 """Health check endpoint."""
+
 import logging
 import time
 from fastapi import APIRouter
@@ -45,14 +46,10 @@ async def health_check() -> Dict[str, Any]:
         logger.exception("Qdrant health check failed")
 
     # OpenAI config check
-    openai_status = (
-        "configured"
-        if getattr(settings, "openai_api_key", None)
-        else "missing"
-    )
+    openai_status = "configured" if getattr(settings, "openai_api_key", None) else "missing"
 
     # Overall system status
-    overall_status : str = "healthy"
+    overall_status: str = "healthy"
     if qdrant_status != "healthy":
         overall_status = "degraded"
     if openai_status != "configured":
@@ -71,7 +68,5 @@ async def health_check() -> Dict[str, Any]:
             },
         },
         "environment": settings.environment,
-        "metadata": {
-            "uptime_seconds": int(time.time() - START_TIME)
-        }
+        "metadata": {"uptime_seconds": int(time.time() - START_TIME)},
     }

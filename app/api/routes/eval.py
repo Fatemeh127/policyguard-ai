@@ -13,16 +13,15 @@ from app.schemas.eval import EvalCase, EvalCaseResult, EvalRequest, EvalResponse
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
 # --- Dependency ---
 def get_vector_store():
     return VectorStore()
 
+
 # --- Endpoint ---
 @router.post("/eval")
-async def run_eval(
-    request: EvalRequest,
-    vs: VectorStore = Depends(get_vector_store)
-):
+async def run_eval(request: EvalRequest, vs: VectorStore = Depends(get_vector_store)):
     """
     Run full RAG evaluation (retrieval + generation + scoring)
     """
@@ -30,16 +29,14 @@ async def run_eval(
     service = EvaluationService(vector_store=vs)
 
     report = service.run_evaluation(
-        dataset=[c.model_dump(mode="json") for c in request.dataset], 
+        dataset=[c.model_dump(mode="json") for c in request.dataset],
         role=request.role,
         top_k=request.top_k,
-        min_score=request.min_score
+        min_score=request.min_score,
     )
 
     logger.info(
-        "Eval complete | total=%d | avg_score=%.3f",
-        report["total"],
-        report["average_score"]
+        "Eval complete | total=%d | avg_score=%.3f", report["total"], report["average_score"]
     )
 
     return report

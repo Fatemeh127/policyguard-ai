@@ -19,10 +19,7 @@ def check_content_safety(text: str) -> bool:
     try:
         client = get_client()
 
-        response = client.moderations.create(
-            model="omni-moderation-latest",
-            input=text
-        )
+        response = client.moderations.create(model="omni-moderation-latest", input=text)
 
         result = response.results[0]
 
@@ -41,10 +38,7 @@ def filter_harmful_content(query: str) -> Optional[str]:
     try:
         client = get_client()
 
-        response = client.moderations.create(
-            model="omni-moderation-latest",
-            input=query
-        )
+        response = client.moderations.create(model="omni-moderation-latest", input=query)
 
         result = response.results[0]
 

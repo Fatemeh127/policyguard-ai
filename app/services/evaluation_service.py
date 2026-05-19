@@ -9,6 +9,7 @@ from app.retrieval.vector_store import VectorStore
 from app.retrieval.retriever import retrieve_chunks_with_metadata
 from app.llm.answer_service import generate_answer
 
+
 class EvaluationService:
 
     def __init__(self, vector_store: Optional[VectorStore] = None):
@@ -32,7 +33,7 @@ class EvaluationService:
         expected: str,
         role: str = "employee",
         top_k: int = 5,
-        min_score: float = 0.5
+        min_score: float = 0.5,
     ) -> Dict[str, Any]:
 
         # Retrieval
@@ -41,16 +42,13 @@ class EvaluationService:
             vector_store=self.vector_store,
             role=role,
             top_k=top_k,
-            min_score=min_score
+            min_score=min_score,
         )
 
         top_score = chunks[0]["score"] if chunks else None
 
         # Generation
-        generated = generate_answer(
-            query=question,
-            context_chunks=chunks
-        )
+        generated = generate_answer(query=question, context_chunks=chunks)
 
         # Scoring
         answer_text = generated.get("answer", "")
@@ -63,7 +61,7 @@ class EvaluationService:
             "score": score,
             "chunks_found": len(chunks),
             "top_score": top_score,
-            "passed": len(chunks) > 0
+            "passed": len(chunks) > 0,
         }
 
     # Full evaluation
@@ -72,7 +70,7 @@ class EvaluationService:
         dataset: List[Dict[str, str]],
         role: str = "employee",
         top_k: int = 5,
-        min_score: float = 0.5
+        min_score: float = 0.5,
     ) -> Dict[str, Any]:
 
         start = time.time()
@@ -86,7 +84,7 @@ class EvaluationService:
                 expected=case["expected"],
                 role=role,
                 top_k=top_k,
-                min_score=min_score
+                min_score=min_score,
             )
 
             results.append(result)
@@ -98,5 +96,5 @@ class EvaluationService:
             "total": len(results),
             "average_score": avg_score,
             "duration_seconds": round(time.time() - start, 3),
-            "results": results
+            "results": results,
         }

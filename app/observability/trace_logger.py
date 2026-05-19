@@ -75,14 +75,11 @@ class TraceLogger:
         self.info(
             "retrieval_result",
             chunks=num_chunks,
-            max_score=round(max_score, 3) if max_score else None
+            max_score=round(max_score, 3) if max_score else None,
         )
 
     def log_generation(self, answer_length: int):
-        self.info(
-            "generation_result",
-            answer_len=answer_length
-        )
+        self.info("generation_result", answer_len=answer_length)
 
     def log_fallback(self, reason: str):
         self.warning("fallback_triggered", reason=reason)

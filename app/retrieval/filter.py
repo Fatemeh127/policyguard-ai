@@ -8,9 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def deduplicate(
-    results: List[Dict[str, Any]]
-) -> List[Dict[str, Any]]:
+def deduplicate(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Remove duplicate chunks by text.
     Keeps the highest-score version of each duplicate.
@@ -34,29 +32,19 @@ def deduplicate(
     return deduped
 
 
-def filter_by_score(
-    results: List[Dict[str, Any]],
-    min_score: float = 0.5
-) -> List[Dict[str, Any]]:
+def filter_by_score(results: List[Dict[str, Any]], min_score: float = 0.5) -> List[Dict[str, Any]]:
     """
     Drop chunks below relevance threshold.
     """
-    filtered = [
-        r for r in results
-        if (r.get("score") or 0.0) >= min_score
-    ]
+    filtered = [r for r in results if (r.get("score") or 0.0) >= min_score]
 
-    logger.debug(
-        "Score filter (min=%.2f): %d → %d",
-        min_score, len(results), len(filtered)
-    )
+    logger.debug("Score filter (min=%.2f): %d → %d", min_score, len(results), len(filtered))
 
     return filtered
 
 
 def filter_by_document(
-    results: List[Dict[str, Any]],
-    document_id: Optional[str] = None
+    results: List[Dict[str, Any]], document_id: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """
     Keep only chunks from a specific document.
@@ -65,15 +53,9 @@ def filter_by_document(
     if document_id is None:
         return results
 
-    filtered = [
-        r for r in results
-        if r.get("document_id") == document_id
-    ]
+    filtered = [r for r in results if r.get("document_id") == document_id]
 
-    logger.debug(
-        "Document filter (%s): %d → %d",
-        document_id, len(results), len(filtered)
-    )
+    logger.debug("Document filter (%s): %d → %d", document_id, len(results), len(filtered))
 
     return filtered
 
@@ -83,7 +65,7 @@ def apply_filters(
     *,
     min_score: float = 0.5,
     document_id: Optional[str] = None,
-    dedup: bool = True
+    dedup: bool = True,
 ) -> List[Dict[str, Any]]:
     """
     Full filtering pipeline:
@@ -109,11 +91,7 @@ def apply_filters(
     results = filter_by_score(results, min_score)
 
     # 4. Sorting (VERY important for LLM quality)
-    results = sorted(
-        results,
-        key=lambda x: x.get("score") or 0.0,
-        reverse=True
-    )
+    results = sorted(results, key=lambda x: x.get("score") or 0.0, reverse=True)
 
     logger.debug("Final filtered chunks: %d", len(results))
 

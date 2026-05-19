@@ -21,8 +21,7 @@ from app.core.request_context import set_request_id, get_request_id
 
 # Logging setup
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | [%(request_id)s] | %(message)s"
+    level=logging.INFO, format="%(asctime)s | %(levelname)s | [%(request_id)s] | %(message)s"
 )
 
 logger = logging.getLogger("rag-eval")
@@ -36,9 +35,10 @@ class RequestIDFilter(logging.Filter):
 
 logger.addFilter(RequestIDFilter())
 
+
 # Main runner
 def run_eval(dataset, output_dir="app/eval/result"):
-    
+
     # Generate request ID for this run
     request_id = datetime.now().strftime("%Y%m%d%H%M%S")
     set_request_id(request_id)
@@ -65,16 +65,13 @@ def run_eval(dataset, output_dir="app/eval/result"):
     file_path = output_path / filename
 
     # Save results
-    file_path.write_text(
-        json.dumps(report, indent=2, ensure_ascii=False),
-        encoding="utf-8"
-    )
+    file_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
 
     logger.info(
         "Evaluation complete | avg_score=%.3f | latency=%.3fs | saved=%s",
         report.get("average_score", 0),
         latency,
-        file_path
+        file_path,
     )
 
     return report
@@ -84,18 +81,10 @@ def run_eval(dataset, output_dir="app/eval/result"):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RAG Evaluation Runner")
 
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        default=None,
-        help="Path to JSON dataset"
-    )
+    parser.add_argument("--dataset", type=str, default=None, help="Path to JSON dataset")
 
     parser.add_argument(
-        "--output_dir",
-        type=str,
-        default="app/eval/result",
-        help="Output directory"
+        "--output_dir", type=str, default="app/eval/result", help="Output directory"
     )
 
     args = parser.parse_args()
@@ -104,7 +93,7 @@ if __name__ == "__main__":
     dataset = [
         {
             "question": "What is the refund policy?",
-            "expected": "Refunds are available within 30 days of purchase."
+            "expected": "Refunds are available within 30 days of purchase.",
         }
     ]
 

@@ -9,8 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # --- Logging setup ---
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 )
 logger = logging.getLogger("ingestion")
 
@@ -35,7 +34,9 @@ def retry(max_attempts=3, delay=1.0):
                     if attempt == max_attempts:
                         raise
                     time.sleep(delay * attempt)
+
         return wrapper
+
     return decorator
 
 
@@ -52,27 +53,19 @@ def load_document(file_path: Path) -> str:
 
 # --- Processing logic ---
 def process_file(
-    file_path: Path,
-    vector_store: VectorStore,
-    role: str,
-    chunk_size: int,
-    chunk_overlap: int
+    file_path: Path, vector_store: VectorStore, role: str, chunk_size: int, chunk_overlap: int
 ) -> Dict[str, Any]:
     start_time = time.time()
-    
+
     logger.info(f"Processing {file_path.name}")
-    
+
     # Load
     text = load_document(file_path)
     if not text.strip():
         raise ValueError("Empty document")
 
     # Chunk
-    chunks = recursive_chunk_text(
-        text,
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap
-    )
+    chunks = recursive_chunk_text(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     # Metadata
     metadata = {
@@ -80,25 +73,17 @@ def process_file(
         "source": str(file_path),
         "role": role,
         "timestamp": time.time(),
-        "chunk_count": len(chunks)
+        "chunk_count": len(chunks),
     }
 
     # Store
-    count = vector_store.add_documents(
-    chunks=chunks,
-    document_id=file_path.name,
-    role=role
-)
+    count = vector_store.add_documents(chunks=chunks, document_id=file_path.name, role=role)
 
     duration = round(time.time() - start_time, 2)
 
     logger.info(f"Done {file_path.name} | chunks={count} | {duration}s")
 
-    return {
-        "file": file_path.name,
-        "chunks": count,
-        "duration": duration
-    }
+    return {"file": file_path.name, "chunks": count, "duration": duration}
 
 
 # --- Main ingestion ---
@@ -108,7 +93,7 @@ def ingest_documents(
     role: str = "employee",
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
-    max_workers: int = 4
+    max_workers: int = 4,
 ):
     folder = Path(folder_path)
 
@@ -130,14 +115,7 @@ def ingest_documents(
     # Parallel processing
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
-            executor.submit(
-                process_file,
-                file_path,
-                vs,
-                role,
-                chunk_size,
-                chunk_overlap
-            )
+            executor.submit(process_file, file_path, vs, role, chunk_size, chunk_overlap)
             for file_path in files
         ]
 
@@ -172,5 +150,5 @@ if __name__ == "__main__":
         role=args.role,
         max_workers=args.workers,
         chunk_size=args.chunk_size,
-        chunk_overlap=args.overlap
+        chunk_overlap=args.overlap,
     )

@@ -29,10 +29,9 @@ class Settings(BaseSettings):
 
     secret_key: str = Field(...)
     api_auth_enabled: bool = Field(default=True)
-    
+
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
-
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -55,9 +54,7 @@ class Settings(BaseSettings):
         v = v.strip()
 
         if not v.startswith(("sk-", "sk-proj-")):
-            raise ValueError(
-                "Invalid OpenAI API key format"
-            )
+            raise ValueError("Invalid OpenAI API key format")
 
         return v
 
@@ -69,9 +66,7 @@ class Settings(BaseSettings):
         v = v.lower()
 
         if v not in allowed:
-            raise ValueError(
-                f"environment must be one of {allowed}"
-            )
+            raise ValueError(f"environment must be one of {allowed}")
 
         return v
 

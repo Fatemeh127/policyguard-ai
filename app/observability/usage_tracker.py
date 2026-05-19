@@ -1,4 +1,5 @@
 """Usage tracking with Redis."""
+
 import logging
 import math
 import redis
@@ -17,8 +18,8 @@ class UsageTracker:
 
     # Pricing per million tokens — override via settings
     EMBEDDING_COST_PER_M: float = getattr(settings, "cost_embedding_per_m", 0.02)
-    INPUT_COST_PER_M: float     = getattr(settings, "cost_input_per_m",     0.50)
-    OUTPUT_COST_PER_M: float    = getattr(settings, "cost_output_per_m",    1.50)
+    INPUT_COST_PER_M: float = getattr(settings, "cost_input_per_m", 0.50)
+    OUTPUT_COST_PER_M: float = getattr(settings, "cost_output_per_m", 1.50)
 
     LATENCY_WINDOW = 10_000  # keep last N latency samples
 
@@ -59,10 +60,10 @@ class UsageTracker:
             pipe.incr("metrics:total_requests")
             pipe.incr(f"metrics:endpoint:{endpoint}")
 
-            pipe.incrby("metrics:total_tokens",       total_tokens)
-            pipe.incrby("metrics:embedding_tokens",   embedding_tokens)
-            pipe.incrby("metrics:prompt_tokens",      llm_prompt_tokens)
-            pipe.incrby("metrics:completion_tokens",  llm_completion_tokens)
+            pipe.incrby("metrics:total_tokens", total_tokens)
+            pipe.incrby("metrics:embedding_tokens", embedding_tokens)
+            pipe.incrby("metrics:prompt_tokens", llm_prompt_tokens)
+            pipe.incrby("metrics:completion_tokens", llm_completion_tokens)
 
             # member = timestamp (unique key), score = latency for sorting
             pipe.zadd("metrics:latency", {ts: latency_ms})
@@ -89,11 +90,11 @@ class UsageTracker:
         try:
             r = self.redis
 
-            total_requests     = int(r.get("metrics:total_requests")    or 0)
-            total_tokens       = int(r.get("metrics:total_tokens")       or 0)
-            embedding_tokens   = int(r.get("metrics:embedding_tokens")   or 0)
-            prompt_tokens      = int(r.get("metrics:prompt_tokens")      or 0)
-            completion_tokens  = int(r.get("metrics:completion_tokens")  or 0)
+            total_requests = int(r.get("metrics:total_requests") or 0)
+            total_tokens = int(r.get("metrics:total_tokens") or 0)
+            embedding_tokens = int(r.get("metrics:embedding_tokens") or 0)
+            prompt_tokens = int(r.get("metrics:prompt_tokens") or 0)
+            completion_tokens = int(r.get("metrics:completion_tokens") or 0)
 
             # Correct: extract scores from (member, score) tuples
             raw = r.zrange("metrics:latency", 0, -1, withscores=True)
@@ -102,31 +103,33 @@ class UsageTracker:
             n = len(latencies)
             avg_latency = sum(latencies) / n if n else 0.0
 
-            embedding_cost = embedding_tokens  / 1_000_000 * self.EMBEDDING_COST_PER_M
-            input_cost     = prompt_tokens     / 1_000_000 * self.INPUT_COST_PER_M
-            output_cost    = completion_tokens / 1_000_000 * self.OUTPUT_COST_PER_M
-            total_cost     = embedding_cost + input_cost + output_cost
+            embedding_cost = embedding_tokens / 1_000_000 * self.EMBEDDING_COST_PER_M
+            input_cost = prompt_tokens / 1_000_000 * self.INPUT_COST_PER_M
+            output_cost = completion_tokens / 1_000_000 * self.OUTPUT_COST_PER_M
+            total_cost = embedding_cost + input_cost + output_cost
 
             return {
                 "usage": {
-                    "total_requests":    total_requests,
-                    "total_tokens":      total_tokens,
-                    "embedding_tokens":  embedding_tokens,
-                    "prompt_tokens":     prompt_tokens,
+                    "total_requests": total_requests,
+                    "total_tokens": total_tokens,
+                    "embedding_tokens": embedding_tokens,
+                    "prompt_tokens": prompt_tokens,
                     "completion_tokens": completion_tokens,
                 },
                 "cost": {
-                    "total_cost":            round(total_cost, 4),
-                    "avg_cost_per_request":  round(total_cost / total_requests, 4) if total_requests else 0,
-                    "embedding_cost":        round(embedding_cost, 4),
-                    "input_cost":            round(input_cost, 4),
-                    "output_cost":           round(output_cost, 4),
+                    "total_cost": round(total_cost, 4),
+                    "avg_cost_per_request": (
+                        round(total_cost / total_requests, 4) if total_requests else 0
+                    ),
+                    "embedding_cost": round(embedding_cost, 4),
+                    "input_cost": round(input_cost, 4),
+                    "output_cost": round(output_cost, 4),
                 },
                 "performance": {
                     "avg_latency_ms": round(avg_latency, 2),
                     "p95_latency_ms": round(self._percentile(latencies, 0.95), 2),
                     "p99_latency_ms": round(self._percentile(latencies, 0.99), 2),
-                    "samples":        n,
+                    "samples": n,
                 },
             }
 

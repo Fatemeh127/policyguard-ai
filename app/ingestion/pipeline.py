@@ -17,6 +17,7 @@ from app.core.request_context import get_request_id
 
 logger = get_logger(__name__)
 
+
 class RAGPipeline:
 
     def __init__(self, vector_store: Optional[VectorStore] = None):
@@ -36,12 +37,7 @@ class RAGPipeline:
         return any(p in q for p in patterns)
 
     # Main pipeline
-    def run(
-        self,
-        query: str,
-        role: str,
-        limit: int = 5
-    ) -> Tuple[AskResponse, List[dict]]:
+    def run(self, query: str, role: str, limit: int = 5) -> Tuple[AskResponse, List[dict]]:
 
         trace = TraceLogger(component="RAGPipeline")
 
@@ -72,10 +68,7 @@ class RAGPipeline:
             with trace.span("retrieval"):
 
                 chunks = retrieve_chunks_with_metadata(
-                    query=query,
-                    vector_store=self.vector_store,
-                    role=role,
-                    top_k=limit
+                    query=query, vector_store=self.vector_store, role=role, top_k=limit
                 )
 
                 if not chunks:
@@ -89,10 +82,7 @@ class RAGPipeline:
             with trace.span("generation"):
 
                 try:
-                    result = generate_answer(
-                        query=query,
-                        context_chunks=chunks   
-                    )
+                    result = generate_answer(query=query, context_chunks=chunks)
                 except Exception as e:
                     trace.error("generation_failed", error=str(e))
                     return self._fallback(), chunks
@@ -122,7 +112,7 @@ class RAGPipeline:
                     "latency_seconds": round(time.time() - start_time, 3),
                     "max_retrieval_score": max_score,
                     "request_id": get_request_id(),
-                }
+                },
             )
 
             return response, chunks
@@ -138,7 +128,7 @@ class RAGPipeline:
             answer="Your request was blocked due to safety policies.",
             sources=[],
             context_used=False,
-            metadata={"blocked": True}
+            metadata={"blocked": True},
         )
 
     # Fallback Response
@@ -147,5 +137,5 @@ class RAGPipeline:
             answer="I couldn't find enough relevant information to answer. Please try rephrasing your question.",
             sources=[],
             context_used=False,
-            metadata={}
+            metadata={},
         )

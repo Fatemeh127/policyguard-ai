@@ -5,7 +5,7 @@ from typing import List
 from app.ingestion.loaders.pdf_loader import load_pdf
 from app.ingestion.loaders.docx_loader import load_docx
 from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
-from app.api.deps import get_vector_store   
+from app.api.deps import get_vector_store
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,9 @@ def get_sample_documents(folder: str = "data/sample_docs") -> List[Path]:
 
     return list(sample_folder.glob("*.pdf")) + list(sample_folder.glob("*.docx"))
 
+
 def load_sample_documents(force_reload: bool = False) -> int:
-    vs = get_vector_store()   
+    vs = get_vector_store()
 
     files = get_sample_documents()
 
@@ -42,17 +43,9 @@ def load_sample_documents(force_reload: bool = False) -> int:
             if not text.strip():
                 continue
 
-            chunks = recursive_chunk_text(
-                text,
-                chunk_size=1000,
-                chunk_overlap=200
-            )
+            chunks = recursive_chunk_text(text, chunk_size=1000, chunk_overlap=200)
 
-            count = vs.add_documents(
-                chunks=chunks,
-                document_id=file_path.name,
-                role="employee"   
-            )
+            count = vs.add_documents(chunks=chunks, document_id=file_path.name, role="employee")
 
             logger.info("Loaded %s (%d chunks)", file_path.name, count)
             loaded += 1

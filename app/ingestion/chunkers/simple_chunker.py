@@ -11,11 +11,7 @@ class Chunk(TypedDict):
     end: int
 
 
-def chunk_text(
-    text: str,
-    chunk_size: int = 1000,
-    chunk_overlap: int = 200
-) -> list[Chunk]:
+def chunk_text(text: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> list[Chunk]:
 
     if not text or not text.strip():
         return []
@@ -30,12 +26,7 @@ def chunk_text(
         raise ValueError("overlap must be smaller than chunk_size")
 
     if len(text) <= chunk_size:
-        return [{
-            "chunk_id": 0,
-            "text": text,
-            "start": 0,
-            "end": len(text)
-        }]
+        return [{"chunk_id": 0, "text": text, "start": 0, "end": len(text)}]
 
     chunks: list[Chunk] = []
     start = 0
@@ -46,12 +37,7 @@ def chunk_text(
         chunk = text[start:end]
 
         if chunk.strip():
-            chunks.append({
-                "chunk_id": len(chunks),
-                "text": chunk,
-                "start": start,
-                "end": end
-            })
+            chunks.append({"chunk_id": len(chunks), "text": chunk, "start": start, "end": end})
         else:
             logger.debug(f"Skipping empty chunk from index {start} to {end}")
 

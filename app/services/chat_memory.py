@@ -23,8 +23,4 @@ def get_chat_history(session_id: str):
 
 
 def save_chat_history(session_id: str, messages: list):
-    redis_client.setex(
-        _key(session_id),
-        CHAT_TTL,
-        json.dumps(messages)
-    )
+    redis_client.setex(_key(session_id), CHAT_TTL, json.dumps(messages))

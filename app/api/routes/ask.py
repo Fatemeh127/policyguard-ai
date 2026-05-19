@@ -25,6 +25,7 @@ vs = get_vector_store()
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
 # --- Endpoint ---
 @router.post("/ask", response_model=AskResponse)
 @limiter.limit("10/minute")
@@ -34,47 +35,36 @@ async def ask_question(
     ask_request: AskRequest,
     vs: VectorStore = Depends(get_vector_store),
     tracker: UsageTracker = Depends(get_usage_tracker),
-    user_role: str = Depends(get_current_role)
+    user_role: str = Depends(get_current_role),
 ) -> AskResponse:
 
     start_time = time.time()
 
     try:
-       
+
         logger.info(
             "Question received | authenticated_role=%s | claimed_role=%s | query_length=%d",
-            user_role,  
-            ask_request.role,  
-            len(ask_request.query)
+            user_role,
+            ask_request.role,
+            len(ask_request.query),
         )
 
         # --- Load chat history ---
         history = get_chat_history(ask_request.session_id)
 
-        history.append({
-            "role": "user",
-            "content": ask_request.query
-        })
+        history.append({"role": "user", "content": ask_request.query})
 
         # --- Build RAG query (conversation-aware) ---
-        context_query = "\n".join(
-            [m["content"] for m in history[-6:]]
-        )
+        context_query = "\n".join([m["content"] for m in history[-6:]])
 
         pipeline = RAGPipeline(vector_store=vs)
 
         rag_response, chunks = await asyncio.to_thread(
-            pipeline.run,
-            query=context_query,
-            role=user_role,
-            limit=ask_request.limit
+            pipeline.run, query=context_query, role=user_role, limit=ask_request.limit
         )
 
         # --- Save assistant response ---
-        history.append({
-            "role": "assistant",
-            "content": rag_response.answer
-        })
+        history.append({"role": "assistant", "content": rag_response.answer})
 
         save_chat_history(ask_request.session_id, history)
 
@@ -84,9 +74,7 @@ async def ask_question(
 
         query_tokens = max(len(ask_request.query) // 4, 1)
 
-        context_text = "\n\n".join(
-            [c.get("text", "") for c in chunks if isinstance(c, dict)]
-        )
+        context_text = "\n\n".join([c.get("text", "") for c in chunks if isinstance(c, dict)])
 
         context_tokens = len(context_text) // 4
         prompt_tokens = query_tokens + context_tokens + 100
@@ -98,7 +86,7 @@ async def ask_question(
                 embedding_tokens=query_tokens,
                 llm_prompt_tokens=prompt_tokens,
                 llm_completion_tokens=completion_tokens,
-                latency_ms=latency_ms
+                latency_ms=latency_ms,
             )
         except Exception as e:
             logger.warning("Usage tracking failed: %s", str(e))
@@ -111,7 +99,7 @@ async def ask_question(
             "Ask completed | latency=%.3fs | chunks=%d | context_used=%s",
             latency_sec,
             len(chunks),
-            rag_response.context_used
+            rag_response.context_used,
         )
 
         return rag_response
@@ -120,14 +108,8 @@ async def ask_question(
         logger.exception("Ask endpoint failed")
 
         try:
-            tracker.track_request(
-                endpoint="ask",
-                latency_ms=(time.time() - start_time) * 1000
-            )
+            tracker.track_request(endpoint="ask", latency_ms=(time.time() - start_time) * 1000)
         except Exception:
             pass
 
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to process question"
-        ) from exc
+        raise HTTPException(status_code=500, detail="Failed to process question") from exc

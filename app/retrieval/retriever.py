@@ -11,38 +11,28 @@ logger = logging.getLogger(__name__)
 
 # --- Private helpers ---
 
+
 def _search_vector_store(
-    query: str,
-    vector_store: VectorStore,
-    role: str,
-    top_k: int
+    query: str, vector_store: VectorStore, role: str, top_k: int
 ) -> List[Dict[str, Any]]:
     """
     Safe wrapper around vector store search.
     Ensures error handling and consistent output.
     """
     try:
-        results = vector_store.search(
-            query=query,
-            role=role,
-            limit=top_k
-        )
+        results = vector_store.search(query=query, role=role, limit=top_k)
         if not isinstance(results, list):
             logger.warning("Vector store returned invalid type: %s", type(results))
             return []
         return results
 
     except Exception as e:
-        logger.error(
-            "Vector search failed | query=%s | role=%s | error=%s",
-            query, role, str(e)
-        )
+        logger.error("Vector search failed | query=%s | role=%s | error=%s", query, role, str(e))
         return []
 
 
 def _apply_retrieval_pipeline(
-    results: List[Dict[str, Any]],
-    min_score: float
+    results: List[Dict[str, Any]], min_score: float
 ) -> List[Dict[str, Any]]:
     """
     Standard RAG retrieval post-processing:
@@ -62,12 +52,13 @@ def _apply_retrieval_pipeline(
 
 # --- Public API ---
 
+
 def retrieve_chunks(
     query: str,
     vector_store: VectorStore,
-    role: str="employee",
+    role: str = "employee",
     top_k: int = 5,
-    min_score: float = 0.5
+    min_score: float = 0.5,
 ) -> List[str]:
     """
     Returns clean text chunks ready for LLM context.
@@ -83,19 +74,15 @@ def retrieve_chunks(
 
     if not chunks:
         logger.warning(
-            "No chunks returned | query=%s | role=%s | min_score=%s",
-            query, role, min_score
+            "No chunks returned | query=%s | role=%s | min_score=%s", query, role, min_score
         )
 
     logger.debug("Final chunks for LLM: %d", len(chunks))
     return chunks
 
+
 def retrieve_chunks_with_metadata(
-    query: str,
-    vector_store: VectorStore,
-    role: str,
-    top_k: int = 5,
-    min_score: float = 0.6
+    query: str, vector_store: VectorStore, role: str, top_k: int = 5, min_score: float = 0.6
 ) -> List[Dict[str, Any]]:
 
     results = _search_vector_store(query, vector_store, role, top_k)
@@ -118,7 +105,8 @@ def retrieve_chunks_with_metadata(
             "chunk_id": r.get("chunk_id"),
             "role": r.get("role"),
         }
-        for r in filtered if r.get("text")
+        for r in filtered
+        if r.get("text")
     ]
 
     logger.debug("Final metadata chunks: %d", len(cleaned))

@@ -36,6 +36,7 @@ def load_eval_questions(csv_path: str = "app/eval/questions.csv") -> List[Dict[s
         logger.warning("File not found: %s", csv_path)
         return []
 
+
 # Retrieval Metrics
 def recall_at_k(retrieved_ids: List[str], expected_ids: List[str]) -> float:
     # Clean both lists: strip whitespace, lowercase, remove empty strings
@@ -56,11 +57,12 @@ def recall_at_k(retrieved_ids: List[str], expected_ids: List[str]) -> float:
 
 def mrr(retrieved_ids: List[str], expected_id: str) -> float:
     if not expected_id:
-         return 0.0
+        return 0.0
     for i, doc_id in enumerate(retrieved_ids):
         if doc_id == expected_id:
             return 1 / (i + 1)
     return 0.0
+
 
 # extract filename prefix from document_id:
 def extract_source(document_id: str) -> str:
@@ -70,24 +72,19 @@ def extract_source(document_id: str) -> str:
     # Rebuild until we find .pdf
     for i, part in enumerate(parts):
         if part.endswith(".pdf"):
-            return "_".join(parts[:i+1])
+            return "_".join(parts[: i + 1])
     return document_id.strip().lower()
+
 
 # Answer Metrics
 def semantic_similarity(expected: str, answer: str) -> float:
     if not expected:
         return 0.0
 
-    return util.cos_sim(
-        model.encode(expected),
-        model.encode(answer)
-    ).item()
+    return util.cos_sim(model.encode(expected), model.encode(answer)).item()
 
 
-def faithfulness(
-    answer: str,
-    contexts: List[str]
-) -> float:
+def faithfulness(answer: str, contexts: List[str]) -> float:
 
     if not answer or not contexts:
         return 0.0
@@ -102,10 +99,7 @@ def faithfulness(
 
         chunk_embedding = model.encode(chunk)
 
-        score = util.cos_sim(
-            answer_embedding,
-            chunk_embedding
-        ).item()
+        score = util.cos_sim(answer_embedding, chunk_embedding).item()
 
         similarities.append(score)
 
@@ -116,11 +110,7 @@ def faithfulness(
 
 
 # LLM-as-a-Judge
-def llm_judge(
-    question: str,
-    expected: str,
-    answer: str
-) -> int:
+def llm_judge(question: str, expected: str, answer: str) -> int:
     """
     Uses an LLM to evaluate RAG answer quality.
     Returns integer score from 1 to 5.
@@ -146,10 +136,7 @@ def llm_judge(
         """
 
     try:
-        result = generate_answer(
-            query=prompt,
-            context_chunks=[]
-        )
+        result = generate_answer(query=prompt, context_chunks=[])
 
         raw_score = result.get("answer", "").strip()
 
@@ -163,10 +150,7 @@ def llm_judge(
         return score
 
     except Exception as e:
-        logger.warning(
-            "LLM judge parsing failed: %s",
-            str(e)
-        )
+        logger.warning("LLM judge parsing failed: %s", str(e))
 
         # Safe fallback
         return 0
@@ -190,9 +174,7 @@ def run_evaluation(questions: List[Dict[str, str]]) -> Dict[str, Any]:
 
             # Retrieval (Qdrant)
             chunks = vector_store.search(
-                query=q["question"],
-                role=q.get("role") or "employee",
-                limit=5
+                query=q["question"], role=q.get("role") or "employee", limit=5
             )
 
             retrieved_ids = [
@@ -201,16 +183,10 @@ def run_evaluation(questions: List[Dict[str, str]]) -> Dict[str, Any]:
                 if c.get("document_id", "").strip()
             ]
 
-            context_texts = [
-                c.get("text", "")
-                for c in chunks
-            ]
+            context_texts = [c.get("text", "") for c in chunks]
 
             # Generation
-            result = generate_answer(
-                query=q["question"],
-                context_chunks=chunks
-            )
+            result = generate_answer(query=q["question"], context_chunks=chunks)
 
             answer = result.get("answer", "")
             latency = time.perf_counter() - start
@@ -224,23 +200,22 @@ def run_evaluation(questions: List[Dict[str, str]]) -> Dict[str, Any]:
 
             judge_score = None
 
-            results.append({
-                "question": q["question"],
-                "answer": answer,
-                "recall@k": round(rec_k, 3),
-                "mrr": round(mrr_score, 3),
-                "semantic_similarity": round(sem_score, 3),
-                "faithfulness": round(faith_score, 3),
-                "latency": round(latency, 3),
-                "llm_judge_score": judge_score
-            })
+            results.append(
+                {
+                    "question": q["question"],
+                    "answer": answer,
+                    "recall@k": round(rec_k, 3),
+                    "mrr": round(mrr_score, 3),
+                    "semantic_similarity": round(sem_score, 3),
+                    "faithfulness": round(faith_score, 3),
+                    "latency": round(latency, 3),
+                    "llm_judge_score": judge_score,
+                }
+            )
 
         except Exception as e:
             logger.error("Error: %s", e)
-            results.append({
-                "question": q["question"],
-                "error": str(e)
-            })
+            results.append({"question": q["question"], "error": str(e)})
 
     # Summary
     total = len(results)
@@ -252,10 +227,14 @@ def run_evaluation(questions: List[Dict[str, str]]) -> Dict[str, Any]:
             "total": total,
             "avg_recall@k": sum(r.get("recall@k", 0) for r in valid) / len(valid) if valid else 0.0,
             "avg_mrr": sum(r.get("mrr", 0) for r in valid) / len(valid) if valid else 0.0,
-            "avg_semantic": sum(r.get("semantic_similarity", 0) for r in valid) / len(valid) if valid else 0.0,
-            "avg_faithfulness": sum(r.get("faithfulness", 0) for r in valid) / len(valid) if valid else 0.0,
+            "avg_semantic": (
+                sum(r.get("semantic_similarity", 0) for r in valid) / len(valid) if valid else 0.0
+            ),
+            "avg_faithfulness": (
+                sum(r.get("faithfulness", 0) for r in valid) / len(valid) if valid else 0.0
+            ),
             "avg_latency": sum(r.get("latency", 0) for r in valid) / len(valid) if valid else 0.0,
-        }
+        },
     }
 
 
@@ -268,6 +247,7 @@ def save_results(data: Dict[str, Any], filename: str = "eval_results.json"):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
     logger.info("Saved results")
+
 
 # Run
 if __name__ == "__main__":
@@ -282,4 +262,3 @@ if __name__ == "__main__":
     save_results(results)
 
     print(results)
-

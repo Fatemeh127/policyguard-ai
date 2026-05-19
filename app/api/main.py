@@ -1,4 +1,5 @@
 """FastAPI application initialization."""
+
 import logging
 from contextlib import asynccontextmanager
 
@@ -39,17 +40,9 @@ async def lifespan(app: FastAPI):
 
         text = load_pdf(DEFAULT_PDF)
 
-        chunks = recursive_chunk_text(
-            text,
-            chunk_size=1000,
-            chunk_overlap=200
-        )
+        chunks = recursive_chunk_text(text, chunk_size=1000, chunk_overlap=200)
 
-        vs.add_documents(
-            chunks=chunks,
-            document_id="default_handbook",
-            role="employee"
-        )
+        vs.add_documents(chunks=chunks, document_id="default_handbook", role="employee")
 
         logger.info("Default document loaded successfully (%d chunks)", len(chunks))
 
@@ -66,7 +59,7 @@ app = FastAPI(
     title="PolicyGuard AI",
     description="RAG-based organizational document assistant with RBAC",
     version="0.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add request ID middleware
@@ -85,21 +78,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Prometheus metrics endpoint
 @app.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint."""
     return await metrics_endpoint()
 
+
 # Health check endpoint
 @app.get("/")
 async def root():
     """Root endpoint."""
-    return {
-        "message": "PolicyGuard AI API",
-        "version": "0.1.0",
-        "status": "running"
-    }
+    return {"message": "PolicyGuard AI API", "version": "0.1.0", "status": "running"}
+
 
 # Import and include routers
 from app.api.routes import health, ask, ingest, metrics as metrics_route
