@@ -21,6 +21,7 @@ logger = logging.getLogger("ingestion")
 # --- Imports (project modules) ---
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+
 # --- Retry decorator ---
 def retry(max_attempts=3, delay=1.0):
     def decorator(func):
@@ -77,14 +78,12 @@ def process_file(
 
     documents = []
     for i, chunk in enumerate(chunks):
-        documents.append({
-            "text": chunk,
-            "metadata": {
-                **base_metadata,
-                "chunk_index": i,
-                "chunk_count": len(chunks)
+        documents.append(
+            {
+                "text": chunk,
+                "metadata": {**base_metadata, "chunk_index": i, "chunk_count": len(chunks)},
             }
-        })
+        )
 
     # Store
     count = vector_store.add_documents(chunks=chunks, document_id=file_path.name, role=role)
@@ -93,11 +92,12 @@ def process_file(
 
     logger.info(f"Done {file_path.name} | chunks={count} | {duration}s")
 
-    return {"file": file_path.name,
-            "chunks": count,
-            "duration": duration,
-            "document_id": base_metadata["document_id"]
-}
+    return {
+        "file": file_path.name,
+        "chunks": count,
+        "duration": duration,
+        "document_id": base_metadata["document_id"],
+    }
 
 
 # --- Main ingestion ---

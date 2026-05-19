@@ -17,6 +17,7 @@ def load_pdf(file_path: str) -> str:
         FileNotFoundError: If the file doesn't exist
         ValueError: If the PDF is corrupted or invalid
     """
+
     # Check if file exists
     def load_pdf(file_path: str) -> str:
         if not Path(file_path).exists():

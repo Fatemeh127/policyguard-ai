@@ -1,6 +1,7 @@
 """
 Ask endpoint — production-grade RAG Q&A API.
 """
+
 import asyncio
 import logging
 import time
@@ -104,12 +105,8 @@ async def ask_question(
         logger.exception("Ask endpoint failed")
 
         try:
-            tracker.track_request(
-                endpoint="ask",
-                latency_ms=(time.time() - start_time) * 1000
-            )
+            tracker.track_request(endpoint="ask", latency_ms=(time.time() - start_time) * 1000)
         except Exception as e:
             logger.warning("Failed to track request: %s", e)
-        
 
         raise HTTPException(status_code=500, detail="Failed to process question") from exc

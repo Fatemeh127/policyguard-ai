@@ -33,10 +33,7 @@ async def ingest_document(
 
     except Exception as exc:
         logger.exception("File read failed")
-        raise HTTPException(
-            status_code=400,
-            detail="Failed to read file"
-        ) from exc
+        raise HTTPException(status_code=400, detail="Failed to read file") from exc
 
     tmp_path = None
 
@@ -44,7 +41,7 @@ async def ingest_document(
         suffix = os.path.splitext(file.filename)[1].lower()
 
         if suffix not in [".pdf", ".docx"]:
-            
+
             raise HTTPException(400, "Only PDF and DOCX supported")
 
         # unique document id
@@ -76,11 +73,8 @@ async def ingest_document(
     except Exception as e:
         logger.exception("Ingestion failed for request")
 
-        raise HTTPException(
-            status_code=500,
-            detail="Document ingestion failed"
-        ) from e
-    
+        raise HTTPException(status_code=500, detail="Document ingestion failed") from e
+
     finally:
         if tmp_path and os.path.exists(tmp_path):
             try:

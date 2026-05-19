@@ -93,8 +93,6 @@ async def root():
     return {"message": "PolicyGuard AI API", "version": "0.1.0", "status": "running"}
 
 
-
-
 app.include_router(health.router, prefix="/api", tags=["Health"])
 app.include_router(ask.router, prefix="/api", tags=["Q&A"])
 app.include_router(ingest.router, prefix="/api", tags=["Ingestion"])

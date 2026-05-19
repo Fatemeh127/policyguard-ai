@@ -31,6 +31,5 @@ Question: {query}"""
 
 # Safe Fallback Message
 NO_CONTEXT_MESSAGE = (
-    "I don't have enough information to answer this question "
-    "based on the available documents."
+    "I don't have enough information to answer this question " "based on the available documents."
 )
