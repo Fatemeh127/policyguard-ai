@@ -6,9 +6,7 @@ def test_employee_cannot_access_manager_docs():
     """Employee should not see manager-only documents."""
 
     with patch("app.retrieval.embeddings.client.embeddings.create") as mock_embed:
-        mock_embed.return_value.data = [
-            type("obj", (object,), {"embedding": [0.1] * 1536})
-        ]
+        mock_embed.return_value.data = [type("obj", (object,), {"embedding": [0.1] * 1536})]
 
         vs = get_vector_store()
 
