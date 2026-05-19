@@ -12,27 +12,38 @@ dependencies = [
     "qdrant-client>=1.7.0",
     "pymupdf>=1.23.0",
     "python-docx>=1.1.0",
-    "python-multipart>=0.0.6",
     "streamlit>=1.29.0",
     "pandas>=2.1.0",
     "python-dotenv>=1.0.0",
     "redis>=5.0.0",
     "prometheus-client>=0.19.0",
     "slowapi>=0.1.9",
-    "python-jose[cryptography]>=3.3.0", 
-    "passlib[bcrypt]>=1.7.4",            
-    "python-multipart>=0.0.6", 
-    "sentence-transformers>=3.0.1",
-    "pytest>=8.0.0"
-
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+    "sentence-transformers>=3.0.1"
 ]
 
 [project.optional-dependencies]
 dev = [
+    # testing
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+
+    # formatting / linting
     "black>=23.11.0",
     "ruff>=0.1.6",
+
+    # type checking 
+    "mypy>=1.7.0",
+
+    # security 
+    "bandit>=1.7.5",
+    "pip-audit>=2.6.0",
+
+    # pre-commit 
+    "pre-commit>=3.6.0"
 ]
 
 [build-system]
@@ -41,5 +52,54 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["app*", "ui*", "scripts*", "data*"]
-exclude = ["tests*"]
+include = ["app*", "ui*", "scripts*"]
+exclude = ["tests*", "data*"]
+
+
+# PYTEST CONFIG
+[tool.pytest.ini_options]
+testpaths = ["app/tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --strict-markers --cov=app --cov-report=term-missing --cov-fail-under=80"
+
+
+# BLACK CONFIG
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  \.eggs
+  | \.git
+  | \.venv
+  | venv
+  | build
+  | dist
+)/
+'''
+
+# RUFF CONFIG 
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = [
+    "E", "F", "I",   # basic linting
+    "B",             # bug risks
+    "SIM",           # code simplification
+    "UP",            # python upgrades
+    "RET"            # return issues
+]
+ignore = []
+
+
+# MYPY
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true

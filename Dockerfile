@@ -2,23 +2,29 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# System dependencies
 RUN apt-get update && apt-get install -y \
     curl \
+    build-essential \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy dependency files
+# Install Python dependencies first 
 COPY pyproject.toml ./
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -e .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir .
 
-# Copy application code
+# Copy app code 
 COPY app/ ./app/
 COPY scripts/ ./scripts/
 
-# Expose FastAPI port
+# Security: non-root user
+RUN useradd -m appuser
+USER appuser
+
+# Port
 EXPOSE 8000
 
-# Run FastAPI with uvicorn
-CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Run 
+CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
