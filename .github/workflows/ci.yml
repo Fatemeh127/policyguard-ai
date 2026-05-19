@@ -58,7 +58,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest tests/ \
+          pytest app/tests/ \
             -v \
             --tb=short \
             --strict-markers \
