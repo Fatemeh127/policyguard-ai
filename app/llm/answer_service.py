@@ -12,44 +12,57 @@ logger = logging.getLogger(__name__)
 
 client = OpenAI(api_key=settings.openai_api_key)
 
+class LLMClient:
+    def generate(self, system_prompt: str, user_prompt: str) -> str:
+        raise NotImplementedError
+    
+class OpenAIClient(LLMClient):
+    def __init__(self, client):
+        self.client = client
+
+    def generate(self, system_prompt: str, user_prompt: str) -> str:
+        response = self.client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0,
+            max_tokens=500,
+        )
+        return response.choices[0].message.content
+
 
 def generate_answer(
-    query: str, context_chunks: list[dict[str, Any]], min_score: float = 0.5
+    query: str,
+    context_chunks: list[dict[str, Any]],
+    min_score: float = 0.5,
+    llm: LLMClient = None,
 ) -> dict[str, Any]:
-    """
-    Generate answer using LLM with retrieved context.
 
-    Args:
-        query: User's question
-        context_chunks: Retrieved chunks from vector store
-        min_score: Minimum similarity score to use a chunk
+    if llm is None:
+        llm = OpenAIClient(client)
 
-    Returns:
-        Dict with answer, sources, and metadata
-    """
-    # If no context or low scores, return safe fallback
+    # fallback if no context or low relevance
     if not context_chunks or all(chunk.get("score", 0) < min_score for chunk in context_chunks):
         return {
-            "answer": "I don't have enough information to answer that"
-            "question based on the available documents.",
-            "sources": [],  # ← MUST ALWAYS INCLUDE THIS
+            "answer": "I don't have enough information to answer that based on the available documents.",
+            "sources": [],
             "context_used": False,
             "metadata": {"num_chunks_used": 0, "model": "gpt-3.5-turbo"},
         }
 
-    # Filter by relevance score
     relevant_chunks = context_chunks
 
-    # Safe fallback if no relevant context
     if not relevant_chunks:
         logger.warning("No relevant chunks found for query (min_score=%f)", min_score)
         return {
             "answer": NO_CONTEXT_MESSAGE,
+            "sources": [],
             "context_used": False,
             "metadata": {"num_chunks_used": 0, "min_score_threshold": min_score},
         }
 
-    # Build context from chunks
     context_text = "\n\n".join(
         f"[Source {i+1}] {chunk['text']}" for i, chunk in enumerate(relevant_chunks)
     )
@@ -57,23 +70,12 @@ def generate_answer(
     try:
         logger.debug("Generating answer with %d chunks", len(relevant_chunks))
 
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT_RAG},
-                {
-                    "role": "user",
-                    "content": USER_PROMPT_TEMPLATE.format(context=context_text, query=query),
-                },
-            ],
-            temperature=0,
-            max_tokens=500,
+        content = llm.generate(
+            SYSTEM_PROMPT_RAG,
+            USER_PROMPT_TEMPLATE.format(context=context_text, query=query),
         )
 
-        content = response.choices[0].message.content
         answer = (content or "").strip()
-
-        logger.info("Successfully generated answer")
 
         return {
             "answer": answer,
@@ -86,7 +88,10 @@ def generate_answer(
                 for chunk in relevant_chunks
             ],
             "context_used": True,
-            "metadata": {"num_chunks_used": len(relevant_chunks), "model": "gpt-3.5-turbo"},
+            "metadata": {
+                "num_chunks_used": len(relevant_chunks),
+                "model": "gpt-3.5-turbo",
+            },
         }
 
     except Exception as exc:
