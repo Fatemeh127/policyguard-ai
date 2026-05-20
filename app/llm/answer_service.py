@@ -48,7 +48,8 @@ def generate_answer(
     # fallback if no context or low relevance
     if not context_chunks or all(chunk.get("score", 0) < min_score for chunk in context_chunks):
         return {
-            "answer": "I don't have enough information to answer that based on the available documents.",
+            "answer": "I don't have enough information to answer"
+            "that based on the available documents.",
             "sources": [],
             "context_used": False,
             "metadata": {"num_chunks_used": 0, "model": "gpt-3.5-turbo"},
