@@ -134,7 +134,7 @@ class VectorStore:
                     )
                 )
 
-            query_filter = Filter(must=must_conditions)  
+            query_filter = Filter(must=must_conditions)
 
             search_result = self.client.query_points(
                 collection_name=self.collection_name,
