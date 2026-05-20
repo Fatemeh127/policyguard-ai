@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 from openai import OpenAI
-from sympy import content
 
 from app.core.config import settings
 from app.llm.prompts import NO_CONTEXT_MESSAGE, SYSTEM_PROMPT_RAG, USER_PROMPT_TEMPLATE
@@ -28,6 +27,16 @@ def generate_answer(
     Returns:
         Dict with answer, sources, and metadata
     """
+    # If no context or low scores, return safe fallback
+    if not context_chunks or all(chunk.get("score", 0) < min_score for chunk in context_chunks):
+        return {
+            "answer": "I don't have enough information to answer that"
+            "question based on the available documents.",
+            "sources": [],  # ← MUST ALWAYS INCLUDE THIS
+            "context_used": False,
+            "metadata": {"num_chunks_used": 0, "model": "gpt-3.5-turbo"},
+        }
+
     # Filter by relevance score
     relevant_chunks = context_chunks
 
@@ -77,11 +86,7 @@ def generate_answer(
                 for chunk in relevant_chunks
             ],
             "context_used": True,
-            "metadata": {
-                "num_chunks_used": len(relevant_chunks),
-                "model": "gpt-3.5-turbo",
-                "min_score_threshold": min_score,
-            },
+            "metadata": {"num_chunks_used": len(relevant_chunks), "model": "gpt-3.5-turbo"},
         }
 
     except Exception as exc:

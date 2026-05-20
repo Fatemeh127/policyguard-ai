@@ -3,9 +3,11 @@
 import logging
 import sys
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import wraps
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
 from app.ingestion.loaders.docx_loader import load_docx
@@ -14,46 +16,60 @@ from app.retrieval.vector_store import VectorStore
 
 # --- Logging setup ---
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 logger = logging.getLogger("ingestion")
 
-# --- Imports (project modules) ---
+# Imports (project modules)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-# --- Retry decorator ---
-def retry(max_attempts=3, delay=1.0) -> None:
-    def decorator(func) -> None:
-        def wrapper(*args, **kwargs) -> None:
+# Retry decorator (FIXED)
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def retry(max_attempts: int = 3, delay: float = 1.0) -> Callable[[F], F]:
+    def decorator(func: F) -> F:
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             for attempt in range(1, max_attempts + 1):
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
                     logger.warning(f"Retry {attempt}/{max_attempts} failed: {e}")
+
                     if attempt == max_attempts:
                         raise
+
                     time.sleep(delay * attempt)
+
             raise RuntimeError("Unreachable code reached in retry wrapper")
 
-        return wrapper
+        return wrapper  # type: ignore
 
     return decorator
 
 
-# --- File loader ---
+# File loader
 @retry(max_attempts=3)
 def load_document(file_path: Path) -> str:
     if file_path.suffix.lower() == ".pdf":
         return load_pdf(str(file_path))
+
     if file_path.suffix.lower() == ".docx":
         return load_docx(str(file_path))
+
     raise ValueError(f"Unsupported file type: {file_path}")
 
 
-# --- Processing logic ---
+# Processing logic
 def process_file(
-    file_path: Path, vector_store: VectorStore, role: str, chunk_size: int, chunk_overlap: int
+    file_path: Path,
+    vector_store: VectorStore,
+    role: str,
+    chunk_size: int,
+    chunk_overlap: int,
 ) -> dict[str, Any]:
     start_time = time.time()
 
@@ -65,28 +81,18 @@ def process_file(
         raise ValueError("Empty document")
 
     # Chunk
-    chunks = recursive_chunk_text(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-
-    # Metadata
-    base_metadata = {
-        "document_id": file_path.name,
-        "source": str(file_path),
-        "role": role,
-        "timestamp": time.time(),
-        "chunk_count": len(chunks),
-    }
-
-    documents = []
-    for i, chunk in enumerate(chunks):
-        documents.append(
-            {
-                "text": chunk,
-                "metadata": {**base_metadata, "chunk_index": i, "chunk_count": len(chunks)},
-            }
-        )
+    chunks = recursive_chunk_text(
+        text,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+    )
 
     # Store
-    count = vector_store.add_documents(chunks=chunks, document_id=file_path.name, role=role)
+    count = vector_store.add_documents(
+        chunks=chunks,
+        document_id=file_path.name,
+        role=role,
+    )
 
     duration = round(time.time() - start_time, 2)
 
@@ -96,11 +102,11 @@ def process_file(
         "file": file_path.name,
         "chunks": count,
         "duration": duration,
-        "document_id": base_metadata["document_id"],
+        "document_id": file_path.name,
     }
 
 
-# --- Main ingestion ---
+# Main ingestion
 def ingest_documents(
     folder_path: str,
     vector_store: VectorStore | None = None,
@@ -124,19 +130,24 @@ def ingest_documents(
 
     vs = vector_store or VectorStore()
 
-    results = []
+    results: list[dict[str, Any]] = []
 
-    # Parallel processing
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
-            executor.submit(process_file, file_path, vs, role, chunk_size, chunk_overlap)
+            executor.submit(
+                process_file,
+                file_path,
+                vs,
+                role,
+                chunk_size,
+                chunk_overlap,
+            )
             for file_path in files
         ]
 
         for future in as_completed(futures):
             try:
-                result = future.result()
-                results.append(result)
+                results.append(future.result())
             except Exception as e:
                 logger.error(f"Failed processing file: {e}")
 
@@ -145,7 +156,7 @@ def ingest_documents(
     return results
 
 
-# --- CLI ---
+# CLI
 if __name__ == "__main__":
     import argparse
 

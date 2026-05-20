@@ -29,13 +29,12 @@ async def health_check() -> dict[str, Any]:
     qdrant_status = "unhealthy"
     points_count = 0
 
-    # Qdrant health check
     try:
-        collection = vector_store.client.get_collection(
+        collection_info = vector_store.client.get_collection(
             collection_name=vector_store.collection_name
         )
 
-        points_count = collection.points_count
+        points_count = collection_info.points_count or 0
         qdrant_status = "healthy"
 
     except UnexpectedResponse as e:

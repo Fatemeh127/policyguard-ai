@@ -13,7 +13,7 @@ def deduplicate(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     Remove duplicate chunks by text.
     Keeps the highest-score version of each duplicate.
     """
-    best_by_text = {}
+    best_by_text: dict[str, dict[str, Any]] = {}
 
     for r in results:
         text = r.get("text")

@@ -1,6 +1,6 @@
 """Streamlit UI for PolicyGuard AI."""
 
-from typing import Any
+from typing import Any, cast
 
 import requests
 import streamlit as st
@@ -64,7 +64,7 @@ st.markdown(
 
 
 # Upload Document
-def upload_document(file, document_id: str, role: str, api_key: str) -> bool:
+def upload_document(file: Any, document_id: str, role: str, api_key: str) -> bool:
     """Upload document to API."""
 
     try:
@@ -93,7 +93,6 @@ def upload_document(file, document_id: str, role: str, api_key: str) -> bool:
 # Ask Question
 def ask_question(query: str, role: str, limit: int, api_key: str) -> dict[str, Any] | None:
     """Ask question via API."""
-
     try:
         response = requests.post(
             f"{API_BASE_URL}/api/ask",
@@ -103,15 +102,14 @@ def ask_question(query: str, role: str, limit: int, api_key: str) -> dict[str, A
         )
 
         if response.status_code == 200:
-            return response.json()
+            return cast(dict[str, Any], response.json())  # ✅
 
         st.error(f"API Error: {response.status_code}")
         st.code(response.text)
-
         return None
 
-    except Exception as e:
-        st.error(f"Request Error: {str(e)}")
+    except requests.RequestException as e:
+        st.error(f"Request failed: {e}")
         return None
 
 
@@ -179,26 +177,6 @@ def display_answer(response: dict[str, Any] | None) -> None:
             """
 
             st.markdown(html, unsafe_allow_html=True)
-
-    # if sources:
-    #     st.markdown("###  Sources")
-
-    #     for i, source in enumerate(sources, 1):
-
-    #         st.markdown(
-    #             f"""
-    #             <div class="source-box">
-    #                 <b>Source {i}</b><br><br>
-
-    #                 <b>Document:</b> {source.get("document_id", "Unknown")}<br>
-
-    #                 <b>Chunk ID:</b> {source.get("chunk_id", "N/A")}<br>
-
-    #                 <b>Score:</b> {source.get("score", 0):.3f}
-    #             </div>
-    #             """,
-    #             unsafe_allow_html=True
-    #         )
 
 
 # Health Status

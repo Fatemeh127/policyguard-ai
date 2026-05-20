@@ -4,7 +4,7 @@
 import logging
 
 from fastapi import APIRouter, Depends
-from qdrant_client.models import Any
+from typing import Any
 
 from app.retrieval.vector_store import VectorStore
 from app.schemas.eval import EvalRequest

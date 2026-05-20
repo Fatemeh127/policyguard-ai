@@ -1,6 +1,7 @@
 """Rate limiting using Redis and SlowAPI."""
 
 import logging
+
 from fastapi import HTTPException, Request
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
@@ -24,7 +25,7 @@ def get_identifier(request: Request) -> str:
     return f"ip:{get_remote_address(request)}"
 
 
-# Rate limiter 
+# Rate limiter
 limiter = Limiter(
     key_func=get_identifier,
     storage_uri=getattr(settings, "redis_url", None),
@@ -33,8 +34,8 @@ limiter = Limiter(
 )
 
 
-# Handler 
-def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+# Handler
+def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> HTTPException:
     """
     Handle rate limit exceeded errors safely.
     """

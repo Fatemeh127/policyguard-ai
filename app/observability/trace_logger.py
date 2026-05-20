@@ -5,6 +5,7 @@ Professional trace logger for request-level observability.
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Any
 
 from app.core.logging import get_logger
 from app.core.request_context import get_request_id
@@ -21,7 +22,7 @@ class TraceLogger:
         self.component = component
         self.request_id = get_request_id()
 
-    def _log(self, level: str, message: str, **kwargs) -> None:
+    def _log(self, level: str, message: str, **kwargs: Any) -> None:
         extra = " ".join(f"{k}={v}" for k, v in kwargs.items() if v is not None)
 
         msg = f"[{self.component}] {message}"
@@ -38,21 +39,21 @@ class TraceLogger:
             logger.debug(msg)
 
     # Basic logs
-    def info(self, message: str, **kwargs) -> None:
+    def info(self, message: str, **kwargs: Any) -> None:
         self._log("info", message, **kwargs)
 
-    def warning(self, message: str, **kwargs) -> None:
+    def warning(self, message: str, **kwargs: Any) -> None:
         self._log("warning", message, **kwargs)
 
-    def error(self, message: str, **kwargs) -> None:
+    def error(self, message: str, **kwargs: Any) -> None:
         self._log("error", message, **kwargs)
 
-    def debug(self, message: str, **kwargs) -> None:
+    def debug(self, message: str, **kwargs: Any) -> None:
         self._log("debug", message, **kwargs)
 
     # Step timing (VERY IMPORTANT)
     @contextmanager
-    def span(self, step: str, **kwargs) -> Iterator[None]:
+    def span(self, step: str, **kwargs: Any) -> Iterator[None]:
         """
         Context manager to measure execution time of a block.
         """

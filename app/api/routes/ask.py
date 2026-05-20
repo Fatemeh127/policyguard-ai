@@ -18,13 +18,10 @@ from app.retrieval.vector_store import VectorStore
 from app.schemas.ask import AskRequest, AskResponse
 from app.services.chat_memory import get_chat_history, save_chat_history
 
-vs = get_vector_store()
-
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# --- Endpoint ---
 @router.post("/ask", response_model=AskResponse)
 @limiter.limit("10/minute")
 async def ask_question(
@@ -38,7 +35,6 @@ async def ask_question(
     start_time = time.time()
 
     try:
-
         logger.info(
             "Question received | authenticated_role=%s | claimed_role=%s | query_length=%d",
             user_role,
@@ -47,7 +43,7 @@ async def ask_question(
         )
 
         # --- Load chat history ---
-        history = get_chat_history(ask_request.session_id)
+        history = await get_chat_history(ask_request.session_id)  # ✅ awaited
 
         history.append({"role": "user", "content": ask_request.query})
 
@@ -63,7 +59,7 @@ async def ask_question(
         # --- Save assistant response ---
         history.append({"role": "assistant", "content": rag_response.answer})
 
-        save_chat_history(ask_request.session_id, history)
+        await save_chat_history(ask_request.session_id, history)  # ✅ awaited
 
         # --- Metrics ---
         latency_sec = time.time() - start_time

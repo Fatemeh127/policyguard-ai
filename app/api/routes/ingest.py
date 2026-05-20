@@ -1,4 +1,3 @@
-from fileinput import filename
 import logging
 import os
 import tempfile
@@ -23,7 +22,7 @@ async def ingest_document(
     document_id: str = Form(...),
     role: str = Form("employee"),
     vs: VectorStore = Depends(get_vector_store),
-):
+) -> IngestResponse:
     MAX_FILE_SIZE = 10 * 1024 * 1024
 
     try:

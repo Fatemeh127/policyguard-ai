@@ -1,6 +1,7 @@
 """Recursive text chunker with semantic boundaries."""
 
 import logging
+from typing import Any
 
 # import re
 
@@ -12,7 +13,7 @@ def recursive_chunk_text(
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
     separators: list[str] | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """
     Split text recursively using semantic separators.
 

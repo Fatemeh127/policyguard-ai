@@ -40,6 +40,27 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # Add these fields
+    log_file: str | None = Field(default=None)
+    debug: bool = Field(default=False)
+    allowed_origins: list[str] = Field(default=["*"])
+
+    @field_validator("log_level")
+    @classmethod
+    def validate_log_level(cls, v: str) -> str:
+        allowed = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        v = v.upper()
+        if v not in allowed:
+            raise ValueError(f"log_level must be one of {allowed}")
+        return v
+
+    @field_validator("redis_url", "qdrant_url")
+    @classmethod
+    def validate_urls(cls, v: str) -> str:
+        if not v.startswith(("http://", "https://", "redis://")):
+            raise ValueError(f"Invalid URL format: {v}")
+        return v
+
     @property
     def valid_api_keys(self) -> dict[str, str]:
         return {
@@ -71,4 +92,4 @@ class Settings(BaseSettings):
         return v
 
 
-settings = Settings()
+settings: Settings = Settings()

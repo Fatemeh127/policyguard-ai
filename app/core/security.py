@@ -9,6 +9,8 @@ from passlib.context import CryptContext
 
 from app.core.config import settings
 
+from typing import Any, cast
+
 logger = logging.getLogger(__name__)
 
 # Password hashing context
@@ -60,7 +62,7 @@ def hash_password(password: str) -> str:
     Returns:
         Hashed password
     """
-    return pwd_context.hash(password)
+    return str(pwd_context.hash(password))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -74,10 +76,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True if password matches, False otherwise
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    return bool(pwd_context.verify(plain_password, hashed_password))
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
     """
     Create a JWT access token.
 
@@ -97,10 +99,10 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 
     to_encode.update({"exp": expire})
 
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return str(jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM))
 
 
-def decode_access_token(token: str) -> dict | None:
+def decode_access_token(token: str) -> dict[str, Any] | None:
     """
     Decode and verify a JWT token.
 
@@ -111,7 +113,11 @@ def decode_access_token(token: str) -> dict | None:
         Decoded token data if valid, None if invalid
     """
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return cast(
+            dict[str, Any],
+            jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]),
+        )
+
     except JWTError as e:
         logger.warning("Invalid token: %s", e)
         return None

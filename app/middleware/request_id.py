@@ -1,8 +1,10 @@
 import logging
+from collections.abc import Awaitable, Callable
 from uuid import uuid4
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import Response
 
 from app.core.request_context import set_request_id
 
@@ -10,12 +12,14 @@ logger = logging.getLogger(__name__)
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next) -> None:
 
-        request_id = request.headers.get("X-Request-ID")
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
 
-        if not request_id:
-            request_id = str(uuid4())[:8]
+        request_id = request.headers.get("X-Request-ID") or str(uuid4())[:8]
 
         set_request_id(request_id)
 

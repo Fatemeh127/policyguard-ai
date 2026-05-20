@@ -49,10 +49,8 @@ def setup_logging(log_level: str | None = None) -> None:
         root_logger.addHandler(console_handler)
 
         # File handler (optional)
-        if getattr(settings, "log_file", None):
-            file_handler = RotatingFileHandler(
-                settings.log_file, maxBytes=10_000_000, backupCount=5  # 10MB
-            )
+        if log_file := settings.log_file:
+            file_handler = RotatingFileHandler(log_file, maxBytes=10_000_000, backupCount=5)  # 10MB
             file_handler.setFormatter(formatter)
             file_handler.addFilter(RequestIDFilter())
             root_logger.addHandler(file_handler)

@@ -1,10 +1,10 @@
-"""Usage tracking with Redis."""
+"""Usage tracking with Redis (production-safe version)."""
 
 import logging
 import math
 from datetime import datetime
 from functools import cached_property
-from typing import Any
+from typing import Any, cast
 
 import redis
 
@@ -23,6 +23,7 @@ class UsageTracker:
 
     LATENCY_WINDOW = 10_000  # keep last N latency samples
 
+    # Redis connection
     @cached_property
     def redis(self) -> redis.Redis | None:
         """Lazy Redis connection — created on first use."""
@@ -35,9 +36,31 @@ class UsageTracker:
             logger.warning("Redis unavailable: %s", e)
             return None
 
+    # Helpers (type-safe)
+    def _safe_int(self, value: Any) -> int:
+        try:
+            if value is None:
+                return 0
+            if isinstance(value, int):
+                return value
+            return int(value)
+        except Exception:
+            return 0
+
+    def _safe_float(self, value: Any) -> float:
+        try:
+            if value is None:
+                return 0.0
+            if isinstance(value, float):
+                return value
+            return float(value)
+        except Exception:
+            return 0.0
+
     def _normalize_endpoint(self, endpoint: str) -> str:
         return endpoint.strip("/").lower()
 
+    # Tracking
     def track_request(
         self,
         endpoint: str,
@@ -65,23 +88,28 @@ class UsageTracker:
             pipe.incrby("metrics:prompt_tokens", llm_prompt_tokens)
             pipe.incrby("metrics:completion_tokens", llm_completion_tokens)
 
-            # member = timestamp (unique key), score = latency for sorting
-            pipe.zadd("metrics:latency", {ts: latency_ms})
-            pipe.zremrangebyrank("metrics:latency", 0, -(self.LATENCY_WINDOW + 1))
+            # latency sorted set (score = latency)
+            pipe.zadd("metrics:latency", {ts: float(latency_ms)})
+
+            # trim old samples safely
+            start = 0
+            end = -(self.LATENCY_WINDOW + 1)
+            pipe.zremrangebyrank("metrics:latency", start, end)
 
             pipe.execute()
 
         except Exception:
             logger.exception("track_request failed — metrics may be incomplete")
-            # Optionally: self.redis.incr("metrics:tracking_errors")
 
-    def _percentile(self, sorted_data: list[float], pct: float) -> float:
-        """Safe percentile from a pre-sorted list."""
-        if not sorted_data:
+    # Stats helpers
+    def _percentile(self, data: list[float], pct: float) -> float:
+        if not data:
             return 0.0
-        idx = min(math.ceil(len(sorted_data) * pct) - 1, len(sorted_data) - 1)
-        return sorted_data[idx]
 
+        idx = min(math.ceil(len(data) * pct) - 1, len(data) - 1)
+        return data[idx]
+
+    # Metrics API
     def get_metrics(self) -> dict[str, Any]:
         """Return observability metrics."""
         if not self.redis:
@@ -90,24 +118,35 @@ class UsageTracker:
         try:
             r = self.redis
 
-            total_requests = int(r.get("metrics:total_requests") or 0)
-            total_tokens = int(r.get("metrics:total_tokens") or 0)
-            embedding_tokens = int(r.get("metrics:embedding_tokens") or 0)
-            prompt_tokens = int(r.get("metrics:prompt_tokens") or 0)
-            completion_tokens = int(r.get("metrics:completion_tokens") or 0)
+            # Safe Redis reads
+            total_requests = self._safe_int(r.get("metrics:total_requests"))
+            total_tokens = self._safe_int(r.get("metrics:total_tokens"))
+            embedding_tokens = self._safe_int(r.get("metrics:embedding_tokens"))
+            prompt_tokens = self._safe_int(r.get("metrics:prompt_tokens"))
+            completion_tokens = self._safe_int(r.get("metrics:completion_tokens"))
 
-            # Correct: extract scores from (member, score) tuples
-            raw = r.zrange("metrics:latency", 0, -1, withscores=True)
-            latencies = sorted(score for _, score in raw)
+            # Latency stats
+            raw: list[tuple[str, float]] = cast(
+                list[tuple[str, float]],
+                r.zrange("metrics:latency", 0, -1, withscores=True),
+            )
+
+            latencies = sorted(self._safe_float(score) for _, score in raw)
 
             n = len(latencies)
             avg_latency = sum(latencies) / n if n else 0.0
 
-            embedding_cost = embedding_tokens / 1_000_000 * self.EMBEDDING_COST_PER_M
-            input_cost = prompt_tokens / 1_000_000 * self.INPUT_COST_PER_M
-            output_cost = completion_tokens / 1_000_000 * self.OUTPUT_COST_PER_M
+            p95 = self._percentile(latencies, 0.95)
+            p99 = self._percentile(latencies, 0.99)
+
+            # Cost calculation
+            embedding_cost = (embedding_tokens / 1_000_000) * self.EMBEDDING_COST_PER_M
+            input_cost = (prompt_tokens / 1_000_000) * self.INPUT_COST_PER_M
+            output_cost = (completion_tokens / 1_000_000) * self.OUTPUT_COST_PER_M
+
             total_cost = embedding_cost + input_cost + output_cost
 
+            # Response
             return {
                 "usage": {
                     "total_requests": total_requests,
@@ -117,18 +156,18 @@ class UsageTracker:
                     "completion_tokens": completion_tokens,
                 },
                 "cost": {
-                    "total_cost": round(total_cost, 4),
+                    "total_cost": round(total_cost, 6),
                     "avg_cost_per_request": (
-                        round(total_cost / total_requests, 4) if total_requests else 0
+                        round(total_cost / total_requests, 6) if total_requests else 0.0
                     ),
-                    "embedding_cost": round(embedding_cost, 4),
-                    "input_cost": round(input_cost, 4),
-                    "output_cost": round(output_cost, 4),
+                    "embedding_cost": round(embedding_cost, 6),
+                    "input_cost": round(input_cost, 6),
+                    "output_cost": round(output_cost, 6),
                 },
                 "performance": {
                     "avg_latency_ms": round(avg_latency, 2),
-                    "p95_latency_ms": round(self._percentile(latencies, 0.95), 2),
-                    "p99_latency_ms": round(self._percentile(latencies, 0.99), 2),
+                    "p95_latency_ms": round(p95, 2),
+                    "p99_latency_ms": round(p99, 2),
                     "samples": n,
                 },
             }
@@ -138,6 +177,6 @@ class UsageTracker:
             return {"error": "metrics retrieval failed"}
 
 
-# Lazy — no connection on import; instantiate where needed via DI
+# Factory
 def get_usage_tracker() -> UsageTracker:
     return UsageTracker()

@@ -36,7 +36,7 @@ class RAGPipeline:
         return any(p in q for p in patterns)
 
     # Main pipeline
-    def run(self, query: str, role: str, limit: int = 5) -> tuple[AskResponse, list[dict]]:
+    def run(self, query: str, role: str, limit: int = 5) -> tuple[AskResponse, list[dict[str, str]]]:
 
         trace = TraceLogger(component="RAGPipeline")
 

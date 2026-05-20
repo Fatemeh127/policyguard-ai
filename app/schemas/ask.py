@@ -13,7 +13,7 @@ class AskRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500, description="User question")
     role: str = Field(..., description="User role for RBAC filtering")
     limit: int = Field(default=5, ge=1, le=20, description="Max chunks to retrieve")
-    session_id: str | None = None
+    session_id: str
 
 
 class AskResponse(BaseModel):
