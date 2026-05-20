@@ -238,7 +238,7 @@ def run_evaluation(questions: list[dict[str, str]]) -> dict[str, Any]:
 
 
 # Save results
-def save_results(data: dict[str, Any], filename: str = "eval_results.json"):
+def save_results(data: dict[str, Any], filename: str = "eval_results.json") -> None:
     path = Path(__file__).resolve().parent / "result"
     path.mkdir(exist_ok=True)
 

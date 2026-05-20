@@ -1,7 +1,7 @@
 from app.ingestion.chunkers.simple_chunker import chunk_text
 
 
-def test_chunking_creates_correct_size():
+def test_chunking_creates_correct_size() -> None:
     text = "A" * 1000 + "B" * 1000
     chunks = chunk_text(text, chunk_size=500, chunk_overlap=100)
 

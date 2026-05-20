@@ -15,6 +15,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from qdrant_client.models import Any
+
 from app.core.request_context import get_request_id, set_request_id
 from app.retrieval.vector_store import VectorStore
 from app.services.evaluation_service import EvaluationService
@@ -28,7 +30,7 @@ logger = logging.getLogger("rag-eval")
 
 
 class RequestIDFilter(logging.Filter):
-    def filter(self, record):
+    def filter(self, record) -> bool:
         record.request_id = get_request_id() or "no-request-id"
         return True
 
@@ -37,7 +39,7 @@ logger.addFilter(RequestIDFilter())
 
 
 # Main runner
-def run_eval(dataset, output_dir="app/eval/result"):
+def run_eval(dataset, output_dir="app/eval/result") -> dict[str, Any]:
 
     # Generate request ID for this run
     request_id = datetime.now().strftime("%Y%m%d%H%M%S")

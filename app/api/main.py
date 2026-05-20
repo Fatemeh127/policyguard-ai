@@ -1,7 +1,9 @@
 """FastAPI application initialization."""
 
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +19,7 @@ from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
 from app.ingestion.loaders.pdf_loader import load_pdf
 from app.middleware.request_id import RequestIDMiddleware
 from app.observability.prometheus_metrics import PrometheusMiddleware, metrics_endpoint
+from app.retrieval.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +30,13 @@ DEFAULT_PDF = "data/sample_docs/employee_handbook.pdf"
 
 # Lifespan handler (replaces startup/shutdown events)
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Handle application lifecycle events."""
 
     logger.info("Starting PolicyGuard AI API")
     logger.info("Environment: %s", settings.environment)
 
-    vs = get_vector_store()
+    vs: VectorStore = get_vector_store()
 
     try:
         logger.info("Loading default document...")
@@ -81,14 +84,14 @@ app.add_middleware(
 
 # Prometheus metrics endpoint
 @app.get("/metrics")
-async def metrics():
+async def metrics() -> Any:
     """Prometheus metrics endpoint."""
     return await metrics_endpoint()
 
 
 # Health check endpoint
 @app.get("/")
-async def root():
+async def root() -> dict[str, Any]:
     """Root endpoint."""
     return {"message": "PolicyGuard AI API", "version": "0.1.0", "status": "running"}
 

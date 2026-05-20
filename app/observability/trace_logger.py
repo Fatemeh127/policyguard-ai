@@ -3,6 +3,7 @@ Professional trace logger for request-level observability.
 """
 
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 
 from app.core.logging import get_logger
@@ -20,7 +21,7 @@ class TraceLogger:
         self.component = component
         self.request_id = get_request_id()
 
-    def _log(self, level: str, message: str, **kwargs):
+    def _log(self, level: str, message: str, **kwargs) -> None:
         extra = " ".join(f"{k}={v}" for k, v in kwargs.items() if v is not None)
 
         msg = f"[{self.component}] {message}"
@@ -37,21 +38,21 @@ class TraceLogger:
             logger.debug(msg)
 
     # Basic logs
-    def info(self, message: str, **kwargs):
+    def info(self, message: str, **kwargs) -> None:
         self._log("info", message, **kwargs)
 
-    def warning(self, message: str, **kwargs):
+    def warning(self, message: str, **kwargs) -> None:
         self._log("warning", message, **kwargs)
 
-    def error(self, message: str, **kwargs):
+    def error(self, message: str, **kwargs) -> None:
         self._log("error", message, **kwargs)
 
-    def debug(self, message: str, **kwargs):
+    def debug(self, message: str, **kwargs) -> None:
         self._log("debug", message, **kwargs)
 
     # Step timing (VERY IMPORTANT)
     @contextmanager
-    def span(self, step: str, **kwargs):
+    def span(self, step: str, **kwargs) -> Iterator[None]:
         """
         Context manager to measure execution time of a block.
         """
@@ -70,18 +71,18 @@ class TraceLogger:
             raise
 
     # Specialized helpers (RAG)
-    def log_retrieval(self, num_chunks: int, max_score: float | None):
+    def log_retrieval(self, num_chunks: int, max_score: float | None) -> None:
         self.info(
             "retrieval_result",
             chunks=num_chunks,
             max_score=round(max_score, 3) if max_score else None,
         )
 
-    def log_generation(self, answer_length: int):
+    def log_generation(self, answer_length: int) -> None:
         self.info("generation_result", answer_len=answer_length)
 
-    def log_fallback(self, reason: str):
+    def log_fallback(self, reason: str) -> None:
         self.warning("fallback_triggered", reason=reason)
 
-    def log_blocked(self, reason: str):
+    def log_blocked(self, reason: str) -> None:
         self.warning("request_blocked", reason=reason)

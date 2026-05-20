@@ -30,7 +30,7 @@ class VectorStore:
         self.collection_name = settings.qdrant_collection_name
         self._ensure_collection()
 
-    def _ensure_collection(self):
+    def _ensure_collection(self) -> None:
         """Create collection if it doesn't exist."""
         try:
             collections = self.client.get_collections().collections

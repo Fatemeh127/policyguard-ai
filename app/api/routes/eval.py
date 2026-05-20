@@ -4,6 +4,7 @@
 import logging
 
 from fastapi import APIRouter, Depends
+from qdrant_client.models import Any
 
 from app.retrieval.vector_store import VectorStore
 from app.schemas.eval import EvalRequest
@@ -14,13 +15,15 @@ router = APIRouter()
 
 
 # --- Dependency ---
-def get_vector_store():
+def get_vector_store() -> VectorStore:
     return VectorStore()
 
 
 # --- Endpoint ---
 @router.post("/eval")
-async def run_eval(request: EvalRequest, vs: VectorStore = Depends(get_vector_store)):
+async def run_eval(
+    request: EvalRequest, vs: VectorStore = Depends(get_vector_store)
+) -> dict[str, Any]:
     """
     Run full RAG evaluation (retrieval + generation + scoring)
     """

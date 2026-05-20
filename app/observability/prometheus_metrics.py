@@ -27,7 +27,7 @@ qdrant_documents_total = Gauge("qdrant_documents_total", "Total documents in Qdr
 class PrometheusMiddleware(BaseHTTPMiddleware):
     """Middleware to track HTTP metrics."""
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next) -> Response:
         """Track request metrics."""
         # Skip metrics endpoint itself
         if request.url.path == "/metrics":
@@ -51,6 +51,6 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
         return response
 
 
-async def metrics_endpoint():
+async def metrics_endpoint() -> Response:
     """Expose Prometheus metrics."""
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

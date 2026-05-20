@@ -7,13 +7,13 @@ import pytest
 from app.ingestion.loaders.pdf_loader import load_pdf
 
 
-def test_load_pdf_missing_file_raises_error():
+def test_load_pdf_missing_file_raises_error() -> None:
     """Test that missing file raises FileNotFoundError."""
     with pytest.raises(FileNotFoundError):
         load_pdf("nonexistent.pdf")
 
 
-def test_load_pdf_returns_string():
+def test_load_pdf_returns_string() -> None:
     """Test that load_pdf returns a string."""
     # Skip if no sample PDF available
     sample_pdf = Path("data/sample_docs")

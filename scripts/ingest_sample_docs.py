@@ -23,9 +23,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 # --- Retry decorator ---
-def retry(max_attempts=3, delay=1.0):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
+def retry(max_attempts=3, delay=1.0) -> None:
+    def decorator(func) -> None:
+        def wrapper(*args, **kwargs) -> None:
             for attempt in range(1, max_attempts + 1):
                 try:
                     return func(*args, **kwargs)
@@ -108,7 +108,7 @@ def ingest_documents(
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
     max_workers: int = 4,
-):
+) -> list[dict[str, Any]]:
     folder = Path(folder_path)
 
     if not folder.exists():

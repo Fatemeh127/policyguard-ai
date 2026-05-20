@@ -116,7 +116,7 @@ def ask_question(query: str, role: str, limit: int, api_key: str) -> dict[str, A
 
 
 # Display Answer
-def display_answer(response: dict[str, Any] | None):
+def display_answer(response: dict[str, Any] | None) -> None:
     """Display answer + metadata + sources."""
 
     if not response:
@@ -202,7 +202,7 @@ def display_answer(response: dict[str, Any] | None):
 
 
 # Health Status
-def display_health_status():
+def display_health_status() -> None:
     """Display backend health."""
 
     try:
@@ -242,7 +242,7 @@ def display_health_status():
 
 
 # Main App
-def main():
+def main() -> None:
 
     # Header
     st.markdown('<div class="main-header">📚 PolicyGuard AI</div>', unsafe_allow_html=True)

@@ -3,10 +3,6 @@ from pathlib import Path
 import fitz
 
 
-from pathlib import Path
-import fitz
-
-
 def load_pdf(file_path: str) -> str:
     """
     Extract text from a PDF file.

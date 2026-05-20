@@ -11,7 +11,7 @@ def _key(session_id: str) -> str:
     return f"chat:{session_id}"
 
 
-def get_chat_history(session_id: str):
+def get_chat_history(session_id: str) -> list:
     data = redis_client.get(_key(session_id))
 
     if not data:
@@ -23,5 +23,5 @@ def get_chat_history(session_id: str):
         return []
 
 
-def save_chat_history(session_id: str, messages: list):
+def save_chat_history(session_id: str, messages: list) -> None:
     redis_client.setex(_key(session_id), CHAT_TTL, json.dumps(messages))

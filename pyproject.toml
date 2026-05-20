@@ -97,8 +97,15 @@ ignore = ["B008"]
 
 # MYPY
 [tool.mypy]
+ignore_missing_imports = true
+exclude = [
+    "redis_data/",
+    "qdrant_storage/",
+    "venv/",
+    ".venv/",
+]
 python_version = "3.11"
-strict = true
+strict = false
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

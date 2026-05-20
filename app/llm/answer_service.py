@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from openai import OpenAI
+from sympy import content
 
 from app.core.config import settings
 from app.llm.prompts import NO_CONTEXT_MESSAGE, SYSTEM_PROMPT_RAG, USER_PROMPT_TEMPLATE
@@ -60,7 +61,8 @@ def generate_answer(
             max_tokens=500,
         )
 
-        answer = response.choices[0].message.content.strip()
+        content = response.choices[0].message.content
+        answer = (content or "").strip()
 
         logger.info("Successfully generated answer")
 

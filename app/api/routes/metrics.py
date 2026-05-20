@@ -1,6 +1,7 @@
 """Metrics endpoint for usage tracking."""
 
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Depends
 
@@ -12,7 +13,7 @@ router = APIRouter()
 
 
 @router.get("/metrics")
-async def get_metrics(tracker: UsageTracker = Depends(get_usage_tracker)):
+async def get_metrics(tracker: UsageTracker = Depends(get_usage_tracker)) -> dict[str, Any]:
     """
     Get system usage metrics.
 

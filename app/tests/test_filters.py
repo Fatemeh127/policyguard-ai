@@ -1,8 +1,9 @@
 from unittest.mock import patch
+
 from app.api.deps import get_vector_store
 
 
-def test_employee_cannot_access_manager_docs():
+def test_employee_cannot_access_manager_docs() -> None:
     """Employee should not see manager-only documents."""
 
     with patch("app.retrieval.embeddings.client.embeddings.create") as mock_embed:

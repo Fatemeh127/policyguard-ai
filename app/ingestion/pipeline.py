@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 
 class RAGPipeline:
 
-    def __init__(self, vector_store: VectorStore | None = None):
+    def __init__(self, vector_store: VectorStore | None = None) -> None:
         self.vector_store = vector_store or get_vector_store()
 
     # Prompt Injection Detection

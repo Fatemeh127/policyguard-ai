@@ -55,7 +55,7 @@ def load_sample_documents(force_reload: bool = False) -> int:
     return loaded
 
 
-def ensure_sample_data():
+def ensure_sample_data() -> None:
     try:
         load_sample_documents()
     except Exception as e:

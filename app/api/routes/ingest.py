@@ -1,3 +1,4 @@
+from fileinput import filename
 import logging
 import os
 import tempfile
@@ -38,7 +39,8 @@ async def ingest_document(
     tmp_path = None
 
     try:
-        suffix = os.path.splitext(file.filename)[1].lower()
+        filename = file.filename or ""
+        suffix = os.path.splitext(filename)[1].lower()
 
         if suffix not in [".pdf", ".docx"]:
 
