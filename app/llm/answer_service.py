@@ -12,10 +12,12 @@ logger = logging.getLogger(__name__)
 
 client = OpenAI(api_key=settings.openai_api_key)
 
+
 class LLMClient:
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         raise NotImplementedError
-    
+
+
 class OpenAIClient(LLMClient):
     def __init__(self, client):
         self.client = client
