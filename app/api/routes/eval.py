@@ -2,9 +2,9 @@
 """Eval endpoint — run retrieval quality evaluation via API."""
 
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Depends
-from typing import Any
 
 from app.retrieval.vector_store import VectorStore
 from app.schemas.eval import EvalRequest

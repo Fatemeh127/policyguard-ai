@@ -1,10 +1,7 @@
 """Prometheus metrics exporter for FastAPI."""
 
 import time
-from typing import cast
-
 from collections.abc import Awaitable, Callable
-
 
 from fastapi import Request
 from prometheus_client import (

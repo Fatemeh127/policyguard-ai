@@ -1,7 +1,7 @@
 """Tests for safe answer generation and fallback behavior."""
 
-import pytest
-from typing import Any, Dict, List
+from typing import Any
+
 from app.llm.answer_service import generate_answer
 
 
@@ -29,7 +29,7 @@ def test_low_relevance_score_returns_safe_fallback() -> None:
 
 def test_high_relevance_score_generates_answer() -> None:
     """Test that high relevance scores generate real answers."""
-    chunks: List[Dict[str, Any]] = [
+    chunks: list[dict[str, Any]] = [
         {
             "document_id": "handbook.pdf",
             "chunk_id": 0,
@@ -47,7 +47,7 @@ def test_high_relevance_score_generates_answer() -> None:
 
 def test_answer_includes_source_attribution() -> None:
     """Test that answers cite their sources."""
-    chunks: List[Dict[str, Any]] = [
+    chunks: list[dict[str, Any]] = [
         {
             "document_id": "employee_handbook.pdf",
             "chunk_id": 3,
@@ -68,7 +68,7 @@ def test_answer_includes_source_attribution() -> None:
 
 def test_metadata_includes_performance_info() -> None:
     """Test that response includes metadata."""
-    chunks: List[Dict[str, Any]] = [
+    chunks: list[dict[str, Any]] = [
         {
             "document_id": "handbook.pdf",
             "chunk_id": 0,
@@ -86,7 +86,7 @@ def test_metadata_includes_performance_info() -> None:
 
 def test_multiple_chunks_combined_in_answer() -> None:
     """Test that multiple relevant chunks are used together."""
-    chunks: List[Dict[str, Any]] = [
+    chunks: list[dict[str, Any]] = [
         {
             "document_id": "handbook.pdf",
             "chunk_id": 0,
@@ -111,7 +111,7 @@ def test_multiple_chunks_combined_in_answer() -> None:
 
 def test_answer_does_not_hallucinate_beyond_context() -> None:
     """Test that answer stays grounded in provided context."""
-    chunks: List[Dict[str, Any]] = [
+    chunks: list[dict[str, Any]] = [
         {
             "document_id": "handbook.pdf",
             "chunk_id": 0,
@@ -128,7 +128,7 @@ def test_answer_does_not_hallucinate_beyond_context() -> None:
 
 def test_empty_query_handled_safely() -> None:
     """Test that empty queries don't crash the system."""
-    chunks: List[Dict[str, Any]] = [
+    chunks: list[dict[str, Any]] = [
         {
             "document_id": "handbook.pdf",
             "chunk_id": 0,
@@ -146,7 +146,7 @@ def test_empty_query_handled_safely() -> None:
 
 def test_context_with_special_characters() -> None:
     """Test that special characters in context are handled properly."""
-    chunks: List[Dict[str, Any]] = [
+    chunks: list[dict[str, Any]] = [
         {
             "document_id": "handbook.pdf",
             "chunk_id": 0,
@@ -165,7 +165,7 @@ def test_very_long_context_handled() -> None:
     """Test that very long context doesn't break the system."""
     long_text = "This is policy information. " * 500
 
-    chunks: List[Dict[str, Any]] = [
+    chunks: list[dict[str, Any]] = [
         {
             "document_id": "handbook.pdf",
             "chunk_id": 0,
@@ -183,7 +183,7 @@ def test_very_long_context_handled() -> None:
 
 def test_mixed_relevance_scores_uses_context() -> None:
     """Test that system uses available context."""
-    chunks: List[Dict[str, Any]] = [
+    chunks: list[dict[str, Any]] = [
         {
             "document_id": "handbook.pdf",
             "chunk_id": 5,

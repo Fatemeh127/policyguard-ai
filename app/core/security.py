@@ -3,13 +3,12 @@
 import logging
 import secrets
 from datetime import datetime, timedelta
+from typing import Any, cast
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
-
-from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
