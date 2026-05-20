@@ -8,7 +8,7 @@ from app.llm.answer_service import FakeLLMClient, generate_answer
 def test_no_context_returns_safe_fallback() -> None:
     """Test that empty context triggers safe fallback message."""
     result = generate_answer(
-        query="What is the company's policy on time travel?", context_chunks=[]
+        query="What is the company's policy on time travel?", context_chunks=[], llm=FakeLLMClient()
     )
 
     assert "answer" in result
@@ -131,7 +131,9 @@ def test_answer_does_not_hallucinate_beyond_context() -> None:
         }
     ]
 
-    result = generate_answer(query="How many sick days do I get?", context_chunks=chunks)
+    result = generate_answer(
+        query="How many sick days do I get?", context_chunks=chunks, llm=FakeLLMClient()
+    )
 
     assert result["context_used"] is True
 
@@ -148,7 +150,7 @@ def test_empty_query_handled_safely() -> None:
         }
     ]
 
-    result = generate_answer(query="", context_chunks=chunks)
+    result = generate_answer(query="", context_chunks=chunks, llm=FakeLLMClient())
 
     assert "answer" in result
     assert isinstance(result["answer"], str)
@@ -166,7 +168,9 @@ def test_context_with_special_characters() -> None:
         }
     ]
 
-    result = generate_answer(query="What is the email format?", context_chunks=chunks)
+    result = generate_answer(
+        query="What is the email format?", context_chunks=chunks, llm=FakeLLMClient()
+    )
 
     assert result["context_used"] is True
 
@@ -185,7 +189,9 @@ def test_very_long_context_handled() -> None:
         }
     ]
 
-    result = generate_answer(query="What is the policy?", context_chunks=chunks)
+    result = generate_answer(
+        query="What is the policy?", context_chunks=chunks, llm=FakeLLMClient()
+    )
 
     assert "answer" in result
     assert len(result["answer"]) > 0
@@ -203,6 +209,8 @@ def test_mixed_relevance_scores_uses_context() -> None:
         }
     ]
 
-    result = generate_answer(query="How much annual leave do I get?", context_chunks=chunks)
+    result = generate_answer(
+        query="How much annual leave do I get?", context_chunks=chunks, llm=FakeLLMClient()
+    )
 
     assert result["context_used"] is True
