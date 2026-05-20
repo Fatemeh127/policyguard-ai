@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.llm.answer_service import generate_answer
+from app.llm.answer_service import FakeLLMClient, generate_answer
 
 
 def test_no_context_returns_safe_fallback() -> None:
@@ -21,7 +21,9 @@ def test_no_context_returns_safe_fallback() -> None:
 
 def test_low_relevance_score_returns_safe_fallback() -> None:
     """Test that system handles low relevance appropriately."""
-    result = generate_answer(query="What is the annual leave policy?", context_chunks=[])
+    result = generate_answer(
+        query="What is the annual leave policy?", context_chunks=[], llm=FakeLLMClient()
+    )
 
     assert result["context_used"] is False
     assert result["sources"] == []
@@ -39,7 +41,9 @@ def test_high_relevance_score_generates_answer() -> None:
         }
     ]
 
-    result = generate_answer(query="How many days of annual leave?", context_chunks=chunks)
+    result = generate_answer(
+        query="How many days of annual leave?", context_chunks=chunks, llm=FakeLLMClient()
+    )
 
     assert result["context_used"] is True
     assert len(result["answer"]) > 0
@@ -58,7 +62,9 @@ def test_answer_includes_source_attribution() -> None:
     ]
 
     result = generate_answer(
-        query="How far in advance should I request leave?", context_chunks=chunks
+        query="How far in advance should I request leave?",
+        context_chunks=chunks,
+        llm=FakeLLMClient(),
     )
 
     assert result["context_used"] is True
@@ -78,7 +84,9 @@ def test_metadata_includes_performance_info() -> None:
         }
     ]
 
-    result = generate_answer(query="What are the office hours?", context_chunks=chunks)
+    result = generate_answer(
+        query="What are the office hours?", context_chunks=chunks, llm=FakeLLMClient()
+    )
 
     assert "metadata" in result
     assert "num_chunks_used" in result["metadata"]
@@ -103,7 +111,9 @@ def test_multiple_chunks_combined_in_answer() -> None:
         },
     ]
 
-    result = generate_answer(query="Tell me about the annual leave policy.", context_chunks=chunks)
+    result = generate_answer(
+        query="Tell me about the annual leave policy.", context_chunks=chunks, llm=FakeLLMClient()
+    )
 
     assert result["context_used"] is True
     assert result["metadata"]["num_chunks_used"] >= 1

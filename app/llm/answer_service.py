@@ -10,17 +10,14 @@ from app.llm.prompts import NO_CONTEXT_MESSAGE, SYSTEM_PROMPT_RAG, USER_PROMPT_T
 
 logger = logging.getLogger(__name__)
 
-client = OpenAI(api_key=settings.openai_api_key)
-
-
 class LLMClient:
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         raise NotImplementedError
 
 
 class OpenAIClient(LLMClient):
-    def __init__(self, client):
-        self.client = client
+    def __init__(self):
+        self.client = OpenAI(api_key=settings.openai_api_key)
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         response = self.client.chat.completions.create(
@@ -33,6 +30,10 @@ class OpenAIClient(LLMClient):
             max_tokens=500,
         )
         return response.choices[0].message.content
+    
+class FakeLLMClient(LLMClient):
+    def generate(self, system_prompt: str, user_prompt: str) -> str:
+        return "This is a fake answer for testing"
 
 
 def generate_answer(
@@ -43,7 +44,7 @@ def generate_answer(
 ) -> dict[str, Any]:
 
     if llm is None:
-        llm = OpenAIClient(client)
+      llm = OpenAIClient()
 
     # fallback if no context or low relevance
     if not context_chunks or all(chunk.get("score", 0) < min_score for chunk in context_chunks):
