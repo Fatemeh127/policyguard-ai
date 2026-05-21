@@ -17,7 +17,7 @@ class LLMClient:
 
 
 class OpenAIClient(LLMClient):
-    def __init__(self):
+    def __init__(self) -> None:
         self.client = OpenAI(api_key=settings.openai_api_key)
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
@@ -30,10 +30,13 @@ class OpenAIClient(LLMClient):
             temperature=0,
             max_tokens=500,
         )
-        return response.choices[0].message.content
+        return response.choices[0].message.content or ""
 
 
 class FakeLLMClient(LLMClient):
+    def __init__(self) -> None:
+        super().__init__()
+
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         return "This is a fake answer for testing"
 
@@ -42,7 +45,7 @@ def generate_answer(
     query: str,
     context_chunks: list[dict[str, Any]],
     min_score: float = 0.5,
-    llm: LLMClient = None,
+    llm: LLMClient | None = None,
 ) -> dict[str, Any]:
 
     if llm is None:
