@@ -3,7 +3,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 
 from app.core.config import settings
-from app.core.request_context import get_request_id
+from app.middleware.request_context import get_request_id
 
 
 class RequestIDFilter(logging.Filter):

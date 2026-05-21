@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from typing import Any
 
 from app.core.logging import get_logger
-from app.core.request_context import get_request_id
+from app.middleware.request_context import get_request_id
 
 logger = get_logger(__name__)
 

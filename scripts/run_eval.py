@@ -16,13 +16,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from app.core.request_context import get_request_id, set_request_id
+from app.middleware.request_context import get_request_id, set_request_id
 from app.retrieval.vector_store import VectorStore
 from app.services.evaluation_service import EvaluationService
 
 # Logging setup
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s | %(levelname)s | [%(request_id)s] | %(message)s"
+    level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
 )
 
 logger = logging.getLogger("rag-eval")

@@ -1,0 +1,26 @@
+{
+  "total": 1,
+  "average_score": 0.12,
+  "duration_seconds": 4.489,
+  "results": [
+    {
+      "question": "What is the refund policy?",
+      "expected": "Refunds are available within 30 days of purchase.",
+      "generated": {
+        "answer": "I don't have enough information to answerthat based on the available documents.",
+        "sources": [],
+        "context_used": false,
+        "metadata": {
+          "num_chunks_used": 0,
+          "model": "gpt-3.5-turbo"
+        }
+      },
+      "score": 0.12,
+      "chunks_found": 0,
+      "top_score": null,
+      "passed": false
+    }
+  ],
+  "latency_seconds": 4.555,
+  "request_id": "20260521121104"
+}
