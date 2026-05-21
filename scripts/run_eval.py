@@ -21,9 +21,7 @@ from app.retrieval.vector_store import VectorStore
 from app.services.evaluation_service import EvaluationService
 
 # Logging setup
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
 logger = logging.getLogger("rag-eval")
 
