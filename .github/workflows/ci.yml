@@ -120,7 +120,7 @@ jobs:
         run: bandit -r app/ -ll
 
       - name: Run pip-audit
-        run: pip-audit
+        run: pip-audit --severity HIGH
 
   docker:
     name: Docker Build & Runtime Test
