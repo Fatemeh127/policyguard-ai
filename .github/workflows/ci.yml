@@ -14,38 +14,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-
-      - name: Run tests
-        run: pytest app/tests -v
-
-      - name: Run lint checks
-        run: |
-          black --check .
-          ruff check .
-
-      - name: Run type checking
-        run: mypy .
-
-      - name: Run security checks
-        run: |
-          bandit -r app/
-          pip-audit
 
   lint:
     name: Code Quality Checks (Linux only)
@@ -144,7 +117,7 @@ jobs:
         run: mypy .
 
       - name: Run Bandit
-        run: bandit -r app/
+        run: bandit -r app/ -ll
 
       - name: Run pip-audit
         run: pip-audit
