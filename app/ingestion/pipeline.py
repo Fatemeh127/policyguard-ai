@@ -6,9 +6,9 @@ import time
 
 from app.api.deps import get_vector_store
 from app.core.logging import get_logger
-from app.middleware.request_context import get_request_id
 from app.llm.answer_service import generate_answer
 from app.llm.safety import check_content_safety, filter_harmful_content
+from app.middleware.request_context import get_request_id
 from app.observability.trace_logger import TraceLogger
 from app.retrieval.retriever import retrieve_chunks_with_metadata
 from app.retrieval.vector_store import VectorStore

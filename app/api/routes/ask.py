@@ -11,8 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app.api.deps import get_vector_store
 from app.core.dependencies import get_current_role
-from app.middleware.rate_limiter import limiter
 from app.ingestion.pipeline import RAGPipeline
+from app.middleware.rate_limiter import limiter
 from app.observability.usage_tracker import UsageTracker, get_usage_tracker
 from app.retrieval.vector_store import VectorStore
 from app.schemas.ask import AskRequest, AskResponse
