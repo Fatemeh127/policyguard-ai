@@ -26,6 +26,9 @@ build/
 htmlcov/
 .tox/
 
+# Manual test scripts
+manual_test_loaders.py
+
 # Data
 vector_db/
 redis_data/

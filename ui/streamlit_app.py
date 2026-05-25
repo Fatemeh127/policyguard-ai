@@ -1,5 +1,7 @@
 """Streamlit UI for PolicyGuard AI."""
 
+import os
+import uuid
 from typing import Any, cast
 
 import requests
@@ -7,7 +9,7 @@ import streamlit as st
 
 # Configuration
 
-API_BASE_URL = "http://backend:8000"
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 # Show connection info in debug mode
 if st.sidebar.checkbox("Show Debug Info"):
@@ -96,13 +98,18 @@ def ask_question(query: str, role: str, limit: int, api_key: str) -> dict[str, A
     try:
         response = requests.post(
             f"{API_BASE_URL}/api/ask",
-            json={"query": query, "role": role, "limit": limit},
+            json={
+                "session_id": st.session_state.session_id,
+                "query": query,
+                "role": role,
+                "limit": limit,
+            },
             headers={"X-API-Key": api_key},
             timeout=60,
         )
 
         if response.status_code == 200:
-            return cast(dict[str, Any], response.json())  # ✅
+            return cast(dict[str, Any], response.json())  
 
         st.error(f"API Error: {response.status_code}")
         st.code(response.text)
@@ -221,6 +228,9 @@ def display_health_status() -> None:
 
 # Main App
 def main() -> None:
+
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = str(uuid.uuid4())
 
     # Header
     st.markdown('<div class="main-header">📚 PolicyGuard AI</div>', unsafe_allow_html=True)

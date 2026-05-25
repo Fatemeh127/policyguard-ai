@@ -8,6 +8,7 @@ import time
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from redis.asyncio import Redis
 
 from app.api.deps import get_vector_store
 from app.core.dependencies import get_current_role
@@ -22,6 +23,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+redis_client = Redis(host="redis", port=6379, decode_responses=True)
+
+
+def get_redis() -> Redis:
+    return redis_client
+
+
 @router.post("/ask", response_model=AskResponse)
 @limiter.limit("10/minute")
 async def ask_question(
@@ -31,6 +39,7 @@ async def ask_question(
     vs: Annotated[VectorStore, Depends(get_vector_store)],
     tracker: Annotated[UsageTracker, Depends(get_usage_tracker)],
     user_role: Annotated[str, Depends(get_current_role)],
+    redis: Redis = Depends(get_redis),
 ) -> AskResponse:
     start_time = time.time()
 
@@ -43,7 +52,7 @@ async def ask_question(
         )
 
         # --- Load chat history ---
-        history = await get_chat_history(ask_request.session_id)  # ✅ awaited
+        history = await get_chat_history(ask_request.session_id, redis)  
 
         history.append({"role": "user", "content": ask_request.query})
 
@@ -59,7 +68,7 @@ async def ask_question(
         # --- Save assistant response ---
         history.append({"role": "assistant", "content": rag_response.answer})
 
-        await save_chat_history(ask_request.session_id, history)  # ✅ awaited
+        await save_chat_history(ask_request.session_id, history, redis) 
 
         # --- Metrics ---
         latency_sec = time.time() - start_time

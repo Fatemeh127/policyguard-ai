@@ -3,6 +3,7 @@
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI
@@ -16,6 +17,7 @@ from app.api.routes import metrics as metrics_route
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
+from app.ingestion.loaders.docx_loader import load_docx
 from app.ingestion.loaders.pdf_loader import load_pdf
 from app.middleware.request_id import RequestIDMiddleware
 from app.observability.prometheus_metrics import PrometheusMiddleware, metrics_endpoint
@@ -25,10 +27,15 @@ logger = logging.getLogger(__name__)
 
 setup_logging()
 
-DEFAULT_PDF = "data/sample_docs/employee_handbook.pdf"
+LOADERS = {
+    ".pdf": load_pdf,
+    ".docx": load_docx,
+}
+
+SAMPLE_DOCS_DIR = Path("data/sample_docs")
+ROLES = ["admin", "manager", "employee"]
 
 
-# Lifespan handler (replaces startup/shutdown events)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Handle application lifecycle events."""
@@ -39,18 +46,66 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     vs: VectorStore = get_vector_store()
 
     try:
-        logger.info("Loading default document...")
+        logger.info("Loading sample documents...")
 
-        text = load_pdf(DEFAULT_PDF)
+        for role in ROLES:
+            role_dir = SAMPLE_DOCS_DIR / role
 
-        chunks = recursive_chunk_text(text, chunk_size=1000, chunk_overlap=200)
+            pdf_files = list(role_dir.glob("*.pdf"))
+            docx_files = list(role_dir.glob("*.docx"))
 
-        vs.add_documents(chunks=chunks, document_id="default_handbook", role="employee")
+            all_files = pdf_files + docx_files
 
-        logger.info("Default document loaded successfully (%d chunks)", len(chunks))
+            logger.info(
+                "Loading %d documents for role: %s",
+                len(all_files),
+                role,
+            )
+
+            for file_path in all_files:
+                logger.info(
+                    "Loading document: %s for role: %s",
+                    file_path.name,
+                    role,
+                )
+
+                # Load file based on extension
+                loader = LOADERS.get(file_path.suffix)
+
+                if not loader:
+                    logger.warning(
+                        "Unsupported file type: %s",
+                        file_path.name,
+                    )
+                    continue
+
+                text = loader(str(file_path))
+
+                chunks = recursive_chunk_text(
+                    text,
+                    chunk_size=1000,
+                    chunk_overlap=200,
+                )
+
+                document_id = f"{role}_{file_path.stem}"
+
+                vs.add_documents(
+                    chunks=chunks,
+                    document_id=document_id,
+                    role=role,
+                )
+
+                logger.info(
+                    "Document loaded successfully: %s (%d chunks), role=%s",
+                    file_path.name,
+                    len(chunks),
+                    role,
+                )
+
+        logger.info("All sample documents loaded successfully")
 
     except Exception as e:
-        logger.error("Failed to load default document: %s", str(e))
+        logger.error("Failed to load sample documents: %s", str(e))
 
     yield
 

@@ -7,7 +7,7 @@ from redis.asyncio import Redis
 logger = logging.getLogger(__name__)
 
 CHAT_TTL = 60 * 60 * 24  # 24h
-MAX_MESSAGES = 100
+MAX_MESSAGES = 50
 
 
 def _key(session_id: str) -> str:
