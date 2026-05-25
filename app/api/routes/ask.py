@@ -52,7 +52,7 @@ async def ask_question(
         )
 
         # --- Load chat history ---
-        history = await get_chat_history(ask_request.session_id, redis)  
+        history = await get_chat_history(ask_request.session_id, redis)
 
         history.append({"role": "user", "content": ask_request.query})
 
@@ -68,7 +68,7 @@ async def ask_question(
         # --- Save assistant response ---
         history.append({"role": "assistant", "content": rag_response.answer})
 
-        await save_chat_history(ask_request.session_id, history, redis) 
+        await save_chat_history(ask_request.session_id, history, redis)
 
         # --- Metrics ---
         latency_sec = time.time() - start_time

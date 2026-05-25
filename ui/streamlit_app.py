@@ -109,7 +109,7 @@ def ask_question(query: str, role: str, limit: int, api_key: str) -> dict[str, A
         )
 
         if response.status_code == 200:
-            return cast(dict[str, Any], response.json())  
+            return cast(dict[str, Any], response.json())
 
         st.error(f"API Error: {response.status_code}")
         st.code(response.text)
