@@ -6,6 +6,7 @@ from typing import Any, cast
 
 import requests
 import streamlit as st
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 # Configuration
 
@@ -66,8 +67,13 @@ st.markdown(
 
 
 # Upload Document
-def upload_document(file: Any, document_id: str, role: str, api_key: str) -> bool:
+def upload_document(file: UploadedFile, document_id: str, role: str, api_key: str) -> bool:
     """Upload document to API."""
+
+    allowed_types = [".pdf", ".docx"]
+
+    if not any(file.name.endswith(ext) for ext in allowed_types):
+        raise ValueError("Only PDF and DOCX files are allowed")
 
     try:
         files = {"file": (file.name, file.getvalue(), file.type)}
@@ -128,7 +134,10 @@ def display_answer(response: dict[str, Any] | None) -> None:
         return
 
     answer = response.get("answer", "No answer found")
+    metadata = response.get("metadata", {})
+    sources = response.get("sources", [])
 
+    # Answer
     st.markdown("## Answer")
 
     st.markdown(
@@ -140,11 +149,10 @@ def display_answer(response: dict[str, Any] | None) -> None:
         unsafe_allow_html=True,
     )
 
-    metadata = response.get("metadata", {})
+    # Metadata
+    st.markdown("### Metadata")
 
-    st.markdown("###  Metadata")
-
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         st.metric("Chunks Used", metadata.get("num_chunks_used", 0))
@@ -155,35 +163,77 @@ def display_answer(response: dict[str, Any] | None) -> None:
     with col3:
         st.metric("Model", metadata.get("model", "N/A"))
 
+    col4, col5, col6 = st.columns(3)
+
     with col4:
+        st.metric("Confidence", f"{metadata.get('confidence', 0):.2f}")
+
+    with col5:
+        st.metric("Tokens", metadata.get("total_tokens", "N/A"))
+
+    with col6:
         st.metric("Context", "Yes" if response.get("context_used") else "No")
 
     # Sources
     sources = response.get("sources", [])
 
     if sources:
+        unique_sources = []
+        seen = set()
+
+        for source in sources:
+            key = (
+                source.get("document_id"),
+                source.get("chunk_id"),
+                source.get("text"),
+            )
+
+            if key not in seen:
+                seen.add(key)
+                unique_sources.append(source)
+
+        sources = unique_sources
+
         st.markdown("### Sources")
 
-        for i, source in enumerate(sources, 1):
+        # Group chunks by document
+        grouped_sources: dict[str, list[dict[str, Any]]] = {}
 
-            html = f"""
-            <div style="
-                padding:15px;
-                border-radius:10px;
-                background-color:#f5f5f5;
-                margin-bottom:10px;
-            ">
-                <b>Source {i}</b><br><br>
+        for source in sources:
 
-                <b>Document:</b> {source.get("document_id", "Unknown")}<br>
+            document_id = source.get("document_id", "Unknown")
 
-                <b>Chunk ID:</b> {source.get("chunk_id", "N/A")}<br>
+            if document_id not in grouped_sources:
+                grouped_sources[document_id] = []
 
-                <b>Score:</b> {source.get("score", 0):.3f}
-            </div>
-            """
+            grouped_sources[document_id].append(source)
 
-            st.markdown(html, unsafe_allow_html=True)
+        # Render grouped sources
+        for document_id, document_sources in grouped_sources.items():
+
+            with st.expander(f"{document_id} ({len(document_sources)} relevant chunks found)"):
+
+                for i, source in enumerate(document_sources, 1):
+                    score = source.get("score", 0)
+                    chunk_id = source.get("chunk_id", "N/A")
+                    preview = source.get("text", "No preview available")
+
+                    st.markdown(f"**Chunk {i}**")
+                    st.markdown(f"**Chunk ID:** {chunk_id}")
+                    st.caption(f"Similarity: {score:.3f}")
+                    st.write(preview)
+                    st.divider()
+    # if sources:
+    #     st.markdown("### Sources Used")
+
+    #     for i, source in enumerate(sources, 1):
+    #         document_id = source.get("document_id", "Unknown")
+    #         text = source.get("text", "No preview available")
+    #         score = source.get("score", 0)
+
+    #         with st.expander(f"Source {i} — {document_id}"):
+    #             st.write(text)
+    #             st.caption(f"Similarity: {score:.2f}")
 
 
 # Health Status

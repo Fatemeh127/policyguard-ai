@@ -22,7 +22,6 @@ from app.services.chat_memory import get_chat_history, save_chat_history
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-
 redis_client = Redis(host="redis", port=6379, decode_responses=True)
 
 
@@ -53,24 +52,25 @@ async def ask_question(
 
         # --- Load chat history ---
         history = await get_chat_history(ask_request.session_id, redis)
-
         history.append({"role": "user", "content": ask_request.query})
 
-        # --- Build RAG query (conversation-aware) ---
+        # --- Build RAG query ---
         context_query = "\n".join([m["content"] for m in history[-6:]])
 
         pipeline = RAGPipeline(vector_store=vs)
 
         rag_response, chunks = await asyncio.to_thread(
-            pipeline.run, query=context_query, role=user_role, limit=ask_request.limit
+            pipeline.run,
+            query=context_query,
+            role=user_role,
+            limit=ask_request.limit,
         )
 
-        # --- Save assistant response ---
+        # Save assistant response
         history.append({"role": "assistant", "content": rag_response.answer})
-
         await save_chat_history(ask_request.session_id, history, redis)
 
-        # --- Metrics ---
+        # Metrics
         latency_sec = time.time() - start_time
         latency_ms = latency_sec * 1000
 
@@ -81,6 +81,16 @@ async def ask_question(
         context_tokens = len(context_text) // 4
         prompt_tokens = query_tokens + context_tokens + 100
         completion_tokens = len(rag_response.answer) // 4
+        total_tokens = prompt_tokens + completion_tokens
+
+        # Confidence estimate
+        scores = [
+            c.get("score", 0)
+            for c in chunks
+            if isinstance(c, dict) and isinstance(c.get("score", 0), (int, float))
+        ]
+
+        confidence = round(sum(scores) / len(scores), 3) if scores else 0.0
 
         try:
             tracker.track_request(
@@ -93,16 +103,42 @@ async def ask_question(
         except Exception as e:
             logger.warning("Usage tracking failed: %s", str(e))
 
-        # --- Headers ---
+        # Add request-level metadata to API response
+        if rag_response.metadata is None:
+            rag_response.metadata = {}
+
+        rag_response.metadata.update(
+            {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+                "latency_seconds": latency_sec,
+                "confidence": confidence,
+            }
+        )
+
+        # Headers
         response.headers["X-RateLimit-Limit"] = "10"
         response.headers["X-RateLimit-Remaining"] = "unknown"
 
         logger.info(
-            "Ask completed | latency=%.3fs | chunks=%d | context_used=%s",
+            "Ask completed | latency=%.3fs | chunks=%d | context_used=%s | total_tokens=%d",
             latency_sec,
             len(chunks),
             rag_response.context_used,
+            total_tokens,
         )
+        # Add sources with preview text
+        rag_response.sources = [
+            {
+                "document_id": c.get("document_id", "Unknown"),
+                "chunk_id": c.get("chunk_id", "N/A"),
+                "score": c.get("score", 0),
+                "text": c.get("text", ""),
+            }
+            for c in chunks
+            if isinstance(c, dict)
+        ]
 
         return rag_response
 
@@ -110,7 +146,10 @@ async def ask_question(
         logger.exception("Ask endpoint failed")
 
         try:
-            tracker.track_request(endpoint="ask", latency_ms=(time.time() - start_time) * 1000)
+            tracker.track_request(
+                endpoint="ask",
+                latency_ms=(time.time() - start_time) * 1000,
+            )
         except Exception as e:
             logger.warning("Failed to track request: %s", e)
 
