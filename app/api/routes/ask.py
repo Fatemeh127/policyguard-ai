@@ -17,6 +17,7 @@ from app.middleware.rate_limiter import limiter
 from app.observability.usage_tracker import UsageTracker, get_usage_tracker
 from app.retrieval.vector_store import VectorStore
 from app.schemas.ask import AskRequest, AskResponse
+from app.schemas.common import Source
 from app.services.chat_memory import get_chat_history, save_chat_history
 
 logger = logging.getLogger(__name__)
@@ -84,10 +85,10 @@ async def ask_question(
         total_tokens = prompt_tokens + completion_tokens
 
         # Confidence estimate
-        scores = [
-            c.get("score", 0)
+        scores: list[float] = [
+            float(c["score"])
             for c in chunks
-            if isinstance(c, dict) and isinstance(c.get("score", 0), (int, float))
+            if isinstance(c, dict) and isinstance(c.get("score"), (int, float))
         ]
 
         confidence = round(sum(scores) / len(scores), 3) if scores else 0.0
@@ -130,12 +131,12 @@ async def ask_question(
         )
         # Add sources with preview text
         rag_response.sources = [
-            {
-                "document_id": c.get("document_id", "Unknown"),
-                "chunk_id": c.get("chunk_id", "N/A"),
-                "score": c.get("score", 0),
-                "text": c.get("text", ""),
-            }
+            Source(
+                document_id=str(c.get("document_id", "Unknown")),
+                chunk_id=int(c.get("chunk_id", 0)),
+                score=float(c.get("score", 0.0)),
+                text=str(c.get("text", "")),
+            )
             for c in chunks
             if isinstance(c, dict)
         ]

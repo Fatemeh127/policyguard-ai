@@ -9,6 +9,7 @@ class Source(BaseModel):
     document_id: str
     chunk_id: int
     score: float = Field(..., ge=0.0, le=1.0, description="Similarity score")
+    text: str = ""
 
 
 class ErrorResponse(BaseModel):
