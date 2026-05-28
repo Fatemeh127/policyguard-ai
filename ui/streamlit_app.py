@@ -223,19 +223,7 @@ def display_answer(response: dict[str, Any] | None) -> None:
                     st.caption(f"Similarity: {score:.3f}")
                     st.write(preview)
                     st.divider()
-    # if sources:
-    #     st.markdown("### Sources Used")
-
-    #     for i, source in enumerate(sources, 1):
-    #         document_id = source.get("document_id", "Unknown")
-    #         text = source.get("text", "No preview available")
-    #         score = source.get("score", 0)
-
-    #         with st.expander(f"Source {i} — {document_id}"):
-    #             st.write(text)
-    #             st.caption(f"Similarity: {score:.2f}")
-
-
+   
 # Health Status
 def display_health_status() -> None:
     """Display backend health."""
