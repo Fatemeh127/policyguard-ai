@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://localhost:6379")
 
     # Chat session
-    CHAT_TTL = 60 * 60 * 24
-    MAX_MESSAGES = 50
+    chat_ttl: int = Field(default=60 * 60 * 24, gt=0)
+    max_messages: int = Field(default=50, gt=0)
 
     # App
     environment: Literal["development", "staging", "production"] = "development"
@@ -34,7 +34,10 @@ class Settings(BaseSettings):
 
     # CORS
     allowed_origins: list[str] = Field(
-        default_factory=lambda: ["http://localhost:8501", "http://127.0.0.1:8501"]
+        default_factory=lambda: [
+            "http://localhost:8501",
+            "http://127.0.0.1:8501",
+        ]
     )
 
     # Costs per 1M tokens
@@ -60,15 +63,9 @@ class Settings(BaseSettings):
     api_auth_enabled: bool = True
 
     # JWT
-    jwt_algorithm: str = "HS256"
+    jwt_algorithm: Literal["HS256"] = "HS256"
     access_token_expire_minutes: int = Field(default=1440, gt=0)
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore",
-    )
     # Logging
     noisy_loggers: list[str] = Field(
         default_factory=lambda: [
@@ -82,20 +79,54 @@ class Settings(BaseSettings):
 
     # Rate limiting
     rate_limit_enabled: bool = True
-    rate_limit_strategy: str = "fixed-window"
+    rate_limit_strategy: Literal["fixed-window", "sliding-window"] = "fixed-window"
 
     # Safety
     fail_open_moderation: bool = True
 
     # Chunking
     chunk_size: int = Field(default=1000, gt=0)
-    chunk_overlap: int = Field(default=200, ge=0, lt=1000)
-    sample_docs_dir: Path = Path("data/sample_docs")
+    chunk_overlap: int = Field(default=200, ge=0)
+    sample_docs_dir: Path = Field(default=Path("data/sample_docs"))
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     @model_validator(mode="after")
     def validate_chunking(self) -> "Settings":
         if self.chunk_overlap >= self.chunk_size:
             raise ValueError("chunk_overlap must be smaller than chunk_size")
+        return self
+
+    @model_validator(mode="after")
+    def validate_production_safety(self) -> "Settings":
+        if self.environment == "production":
+            if self.debug:
+                raise ValueError("debug must be False in production")
+
+            if not self.api_auth_enabled:
+                raise ValueError("api_auth_enabled must be True in production")
+
+            if self.fail_open_moderation:
+                raise ValueError("fail_open_moderation must be False in production")
+
+            forbidden_origins = {
+                "http://localhost:8501",
+                "http://127.0.0.1:8501",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+            }
+
+            if any(origin in forbidden_origins for origin in self.allowed_origins):
+                raise ValueError("localhost origins are not allowed in production")
+
+            if "*" in self.allowed_origins:
+                raise ValueError("Wildcard CORS origin '*' is not allowed in production")
+
         return self
 
     @field_validator("openai_api_key")
@@ -128,9 +159,12 @@ class Settings(BaseSettings):
     @field_validator("allowed_origins")
     @classmethod
     def validate_allowed_origins(cls, value: list[str]) -> list[str]:
-        if "*" in value:
-            raise ValueError("Wildcard CORS origin '*' is not allowed in production config")
-        return value
+        cleaned = [origin.rstrip("/") for origin in value]
+
+        if "*" in cleaned:
+            raise ValueError("Wildcard CORS origin '*' is not allowed")
+
+        return cleaned
 
     @property
     def api_key_role_map(self) -> dict[str, str]:

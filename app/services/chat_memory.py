@@ -46,8 +46,8 @@ async def save_chat_history(
     redis: Redis,
 ) -> None:
     """Persist chat history for a session, capping at MAX_MESSAGES."""
-    if len(messages) > settings.MAX_MESSAGES:
-        messages = messages[-settings.MAX_MESSAGES :]
+    if len(messages) > settings.max_messages:
+        messages = messages[-settings.max_messages :]
 
     try:
         payload = json.dumps(messages)
@@ -56,7 +56,7 @@ async def save_chat_history(
         raise
 
     try:
-        await redis.setex(_key(session_id), settings.CHAT_TTL, payload)
+        await redis.setex(_key(session_id), settings.chat_ttl, payload)
     except Exception:
         logger.exception("Redis SETEX failed for session %s", session_id)
         raise
