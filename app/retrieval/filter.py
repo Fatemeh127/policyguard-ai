@@ -1,61 +1,99 @@
-# app/retrieval/filter.py
-
-"""Filter and rerank retrieved chunks before sending to LLM."""
+"""Filter and rerank retrieved chunks before sending them to the LLM."""
 
 import logging
 from typing import Any
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
+
+
+def _safe_score(result: dict[str, Any]) -> float:
+    """Return a safe numeric score from a retrieval result."""
+    try:
+        return float(result.get("score") or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _normalize_text(text: str) -> str:
+    """Normalize text for duplicate detection."""
+    return " ".join(text.lower().split())
 
 
 def deduplicate(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Remove duplicate chunks by text.
+    Remove duplicate chunks by normalized text.
+
     Keeps the highest-score version of each duplicate.
     """
+
     best_by_text: dict[str, dict[str, Any]] = {}
 
-    for r in results:
-        text = r.get("text")
-        if not text:
+    for result in results:
+        text = result.get("text")
+
+        if not isinstance(text, str) or not text.strip():
             continue
 
-        score = r.get("score") or 0.0
+        key = _normalize_text(text)
+        score = _safe_score(result)
 
-        if text not in best_by_text or score > (best_by_text[text].get("score") or 0.0):
-            best_by_text[text] = r
+        existing = best_by_text.get(key)
 
-    deduped = list(best_by_text.values())
+        if existing is None or score > _safe_score(existing):
+            best_by_text[key] = result
 
-    logger.debug("Deduplicated %d → %d chunks", len(results), len(deduped))
+    deduplicated = list(best_by_text.values())
 
-    return deduped
+    logger.debug(
+        "Deduplicated chunks | before=%d | after=%d",
+        len(results),
+        len(deduplicated),
+    )
+
+    return deduplicated
 
 
-def filter_by_score(results: list[dict[str, Any]], min_score: float = 0.5) -> list[dict[str, Any]]:
-    """
-    Drop chunks below relevance threshold.
-    """
-    filtered = [r for r in results if (r.get("score") or 0.0) >= min_score]
+def filter_by_score(
+    results: list[dict[str, Any]],
+    min_score: float,
+) -> list[dict[str, Any]]:
+    """Drop chunks below the relevance threshold."""
 
-    logger.debug("Score filter (min=%.2f): %d → %d", min_score, len(results), len(filtered))
+    filtered = [result for result in results if _safe_score(result) >= min_score]
+
+    logger.debug(
+        "Filtered chunks by score | min_score=%.3f | before=%d | after=%d",
+        min_score,
+        len(results),
+        len(filtered),
+    )
 
     return filtered
 
 
 def filter_by_document(
-    results: list[dict[str, Any]], document_id: str | None = None
+    results: list[dict[str, Any]],
+    document_id: str | None = None,
 ) -> list[dict[str, Any]]:
     """
     Keep only chunks from a specific document.
-    If document_id is None, returns unchanged list.
+
+    If document_id is None, return the original list.
     """
+
     if document_id is None:
         return results
 
-    filtered = [r for r in results if r.get("document_id") == document_id]
+    filtered = [result for result in results if result.get("document_id") == document_id]
 
-    logger.debug("Document filter (%s): %d → %d", document_id, len(results), len(filtered))
+    logger.debug(
+        "Filtered chunks by document | document_id=%s | before=%d | after=%d",
+        document_id,
+        len(results),
+        len(filtered),
+    )
 
     return filtered
 
@@ -63,36 +101,49 @@ def filter_by_document(
 def apply_filters(
     results: list[dict[str, Any]],
     *,
-    min_score: float = 0.5,
+    min_score: float | None = None,
     document_id: str | None = None,
     dedup: bool = True,
+    limit: int | None = None,
 ) -> list[dict[str, Any]]:
     """
-    Full filtering pipeline:
-    1. deduplicate
-    2. filter by document (optional)
-    3. filter by score
-    4. sort by score (descending)
+    Apply retrieval post-processing.
+
+    Steps:
+    1. Deduplicate chunks
+    2. Optionally filter by document
+    3. Filter by relevance score
+    4. Sort by score descending
+    5. Optionally limit number of chunks
     """
 
     if not results:
         return []
 
-    logger.debug("Starting filtering pipeline with %d chunks", len(results))
+    min_score = settings.min_retrieval_score if min_score is None else min_score
 
-    # 1. Deduplication
+    logger.debug(
+        "Starting retrieval filtering | chunks=%d | min_score=%.3f | document_id=%s",
+        len(results),
+        min_score,
+        document_id,
+    )
+
     if dedup:
         results = deduplicate(results)
 
-    # 2. Document filter
     results = filter_by_document(results, document_id)
-
-    # 3. Score filter
     results = filter_by_score(results, min_score)
 
-    # 4. Sorting (VERY important for LLM quality)
-    results = sorted(results, key=lambda x: x.get("score") or 0.0, reverse=True)
+    results = sorted(
+        results,
+        key=_safe_score,
+        reverse=True,
+    )
 
-    logger.debug("Final filtered chunks: %d", len(results))
+    if limit is not None:
+        results = results[:limit]
+
+    logger.debug("Final filtered chunks | count=%d", len(results))
 
     return results

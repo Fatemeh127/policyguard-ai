@@ -3,54 +3,149 @@
 import logging
 from typing import Any
 
+from app.core.config import settings
 from app.retrieval.filter import apply_filters
 from app.retrieval.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
 
 
-# --- Private helpers ---
-
-
 def _search_vector_store(
-    query: str, vector_store: VectorStore, role: str, top_k: int
+    query: str,
+    vector_store: VectorStore,
+    role: str,
+    top_k: int,
 ) -> list[dict[str, Any]]:
-    """
-    Safe wrapper around vector store search.
-    Ensures error handling and consistent output.
-    """
+    """Safely search the vector store."""
+
     try:
-        results = vector_store.search(query=query, role=role, limit=top_k)
-        if not isinstance(results, list):
-            logger.warning("Vector store returned invalid type: %s", type(results))
-            return []
-        return results
-
-    except Exception as e:
-        logger.error("Vector search failed | query=%s | role=%s | error=%s", query, role, str(e))
+        results = vector_store.search(
+            query=query,
+            role=role,
+            limit=top_k,
+        )
+    except Exception:
+        logger.exception(
+            "Vector search failed | role=%s | top_k=%d",
+            role,
+            top_k,
+        )
         return []
 
-
-def _apply_retrieval_pipeline(
-    results: list[dict[str, Any]], min_score: float
-) -> list[dict[str, Any]]:
-    """
-    Standard RAG retrieval post-processing:
-    1. Deduplicate  — remove duplicate chunks
-    2. Filter       — drop weak matches below min_score
-    3. Sort         — best results first (critical for LLM quality)
-    """
-    if not results:
+    if not isinstance(results, list):
+        logger.warning(
+            "Vector store returned invalid result type: %s",
+            type(results),
+        )
         return []
 
-    results = apply_filters(results, min_score=min_score)
-    results = sorted(results, key=lambda x: x.get("score") or 0.0, reverse=True)
-
-    logger.debug("Post-pipeline results count: %d", len(results))
     return results
 
 
-# --- Public API ---
+def _get_filtered_results(
+    query: str,
+    vector_store: VectorStore,
+    role: str,
+    top_k: int,
+    min_score: float,
+) -> list[dict[str, Any]]:
+    """
+    Search, filter, deduplicate, sort, and retry once if no useful chunks remain.
+    """
+
+    results = _search_vector_store(
+        query=query,
+        vector_store=vector_store,
+        role=role,
+        top_k=top_k,
+    )
+
+    filtered = apply_filters(
+        results,
+        min_score=min_score,
+        dedup=True,
+        limit=top_k,
+    )
+
+    if filtered:
+        return filtered
+
+    logger.warning(
+        "No chunks after filtering. Retrying with expanded top_k | role=%s | top_k=%d",
+        role,
+        top_k * 2,
+    )
+
+    retry_results = _search_vector_store(
+        query=query,
+        vector_store=vector_store,
+        role=role,
+        top_k=top_k * 2,
+    )
+
+    return apply_filters(
+        retry_results,
+        min_score=min_score,
+        dedup=True,
+        limit=top_k,
+    )
+
+
+def _clean_metadata_result(result: dict[str, Any]) -> dict[str, Any] | None:
+    """Normalize one vector result into a clean RAG chunk."""
+
+    text = result.get("text")
+
+    if not isinstance(text, str) or not text.strip():
+        return None
+
+    return {
+        "text": text.strip(),
+        "score": result.get("score"),
+        "document_id": result.get("document_id"),
+        "chunk_id": result.get("chunk_id"),
+        "role": result.get("role"),
+    }
+
+
+def retrieve_chunks_with_metadata(
+    query: str,
+    vector_store: VectorStore,
+    role: str = "employee",
+    top_k: int = 5,
+    min_score: float | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Retrieve relevant chunks with metadata for RAG answer generation.
+    """
+
+    if not query.strip():
+        logger.warning("Empty query received for retrieval.")
+        return []
+
+    min_score = settings.min_retrieval_score if min_score is None else min_score
+
+    filtered_results = _get_filtered_results(
+        query=query,
+        vector_store=vector_store,
+        role=role,
+        top_k=top_k,
+        min_score=min_score,
+    )
+
+    cleaned = [
+        cleaned_result
+        for result in filtered_results
+        if (cleaned_result := _clean_metadata_result(result)) is not None
+    ]
+
+    logger.debug(
+        "Final metadata chunks prepared | count=%d | role=%s",
+        len(cleaned),
+        role,
+    )
+
+    return cleaned
 
 
 def retrieve_chunks(
@@ -58,56 +153,22 @@ def retrieve_chunks(
     vector_store: VectorStore,
     role: str = "employee",
     top_k: int = 5,
-    min_score: float = 0.5,
+    min_score: float | None = None,
 ) -> list[str]:
     """
-    Returns clean text chunks ready for LLM context.
-
-    Use this in:
-    - pipeline.py
-    - routes/ask.py
+    Retrieve clean text chunks only, ready to be used as LLM context.
     """
-    results = _search_vector_store(query, vector_store, role, top_k)
-    results = _apply_retrieval_pipeline(results, min_score)
 
-    chunks = [r["text"] for r in results if r.get("text")]
+    chunks_with_metadata = retrieve_chunks_with_metadata(
+        query=query,
+        vector_store=vector_store,
+        role=role,
+        top_k=top_k,
+        min_score=min_score,
+    )
 
-    if not chunks:
-        logger.warning(
-            "No chunks returned | query=%s | role=%s | min_score=%s", query, role, min_score
-        )
+    chunks = [chunk["text"] for chunk in chunks_with_metadata]
 
-    logger.debug("Final chunks for LLM: %d", len(chunks))
+    logger.debug("Final text chunks prepared | count=%d", len(chunks))
+
     return chunks
-
-
-def retrieve_chunks_with_metadata(
-    query: str, vector_store: VectorStore, role: str, top_k: int = 5, min_score: float = 0.6
-) -> list[dict[str, Any]]:
-
-    results = _search_vector_store(query, vector_store, role, top_k)
-
-    if not results:
-        logger.warning("No results found, retrying with higher top_k")
-        results = _search_vector_store(query, vector_store, role, top_k * 2)
-
-    filtered = _apply_retrieval_pipeline(results, min_score)
-
-    if not filtered:
-        logger.warning("All results filtered out, using raw results")
-        filtered = results
-
-    cleaned = [
-        {
-            "text": r["text"],
-            "score": r.get("score"),
-            "document_id": r.get("document_id"),
-            "chunk_id": r.get("chunk_id"),
-            "role": r.get("role"),
-        }
-        for r in filtered
-        if r.get("text")
-    ]
-
-    logger.debug("Final metadata chunks: %d", len(cleaned))
-    return cleaned

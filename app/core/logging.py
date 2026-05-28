@@ -1,3 +1,5 @@
+"""Centralized logging configuration for PolicyGuard AI."""
+
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
@@ -7,9 +9,7 @@ from app.middleware.request_context import get_request_id
 
 
 class RequestIDFilter(logging.Filter):
-    """
-    Injects request_id from ContextVar into all log records.
-    """
+    """Add request_id to every log record."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         record.request_id = get_request_id() or "no-request-id"
@@ -17,60 +17,51 @@ class RequestIDFilter(logging.Filter):
 
 
 def setup_logging(log_level: str | None = None) -> None:
-    """
-    Configure application-wide logging with:
-    - Console logging
-    - Optional rotating file logging
-    - Request ID injection
-    - Third-party log noise reduction
-    """
+    """Configure application-wide logging."""
 
-    # Determine log level
     level_name = (log_level or settings.log_level).upper()
     level = getattr(logging, level_name, logging.INFO)
 
-    # Formatter (includes request_id)
     formatter = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)-8s | %(name)-25s | [%(request_id)s] | %(message)s",
+        fmt=("%(asctime)s | %(levelname)s | %(name)s | " "request_id=%(request_id)s | %(message)s"),
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # Root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
 
-    # Avoid duplicate handlers in reload environments
+    # Prevent duplicate logs when using uvicorn --reload
     if not root_logger.handlers:
+        request_id_filter = RequestIDFilter()
 
-        # Console handler
         console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(level)
         console_handler.setFormatter(formatter)
-        console_handler.addFilter(RequestIDFilter())
+        console_handler.addFilter(request_id_filter)
         root_logger.addHandler(console_handler)
 
-        # File handler (optional)
-        if log_file := settings.log_file:
-            file_handler = RotatingFileHandler(log_file, maxBytes=10_000_000, backupCount=5)  # 10MB
+        if settings.log_file:
+            file_handler = RotatingFileHandler(
+                filename=settings.log_file,
+                maxBytes=10_000_000,
+                backupCount=5,
+                encoding="utf-8",
+            )
+            file_handler.setLevel(level)
             file_handler.setFormatter(formatter)
-            file_handler.addFilter(RequestIDFilter())
+            file_handler.addFilter(request_id_filter)
             root_logger.addHandler(file_handler)
 
-    # Reduce noise from libraries
-    noisy_libs = getattr(
-        settings, "noisy_loggers", ["httpx", "httpcore", "urllib3", "asyncio", "multipart"]
-    )
+    for logger_name in settings.noisy_loggers:
+        logging.getLogger(logger_name).setLevel(logging.WARNING)
 
-    for lib in noisy_libs:
-        logging.getLogger(lib).setLevel(logging.WARNING)
-
-    # Startup log
     root_logger.info(
-        "Logging configured | level=%s | environment=%s", level_name, settings.environment
+        "Logging configured | level=%s | environment=%s",
+        level_name,
+        settings.environment,
     )
 
 
 def get_logger(name: str) -> logging.Logger:
-    """
-    Returns a standard logger for modules.
-    """
+    """Return a logger instance for a module."""
     return logging.getLogger(name)

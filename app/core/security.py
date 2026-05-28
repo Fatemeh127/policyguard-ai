@@ -1,8 +1,8 @@
-"""Security utilities - API key authentication."""
+"""Security utilities for API key authentication, password hashing, and JWT handling."""
 
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 from jose import JWTError, jwt
@@ -12,111 +12,72 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# JWT settings
-SECRET_KEY = settings.secret_key
-ALGORITHM = settings.ALGORITHM
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 
 def verify_api_key(api_key: str) -> str | None:
-    """
-    Verify API key and return associated role.
+    """Verify an API key and return the associated role if valid."""
 
-    Args:
-        api_key: API key to verify
+    for stored_key, role in settings.api_key_role_map.items():
+        if secrets.compare_digest(api_key, stored_key):
+            logger.debug("Valid API key for role: %s", role)
+            return role
 
-    Returns:
-        User role if valid, None if invalid
-    """
-    role = settings.valid_api_keys.get(api_key)
-
-    if role:
-        logger.debug("Valid API key for role: %s", role)
-    else:
-        logger.warning("Invalid API key attempted: %s", api_key[:10])
-
-    return role
+    logger.warning("Invalid API key attempted")
+    return None
 
 
 def generate_api_key() -> str:
-    """
-    Generate a random API key.
-
-    Returns:
-        32-character random API key
-    """
+    """Generate a secure random API key."""
     return secrets.token_urlsafe(32)
 
 
 def hash_password(password: str) -> str:
-    """
-    Hash a password using bcrypt.
-
-    Args:
-        password: Plain text password
-
-    Returns:
-        Hashed password
-    """
+    """Hash a plaintext password using bcrypt."""
     return str(pwd_context.hash(password))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify a password against its hash.
-
-    Args:
-        plain_password: Plain text password
-        hashed_password: Hashed password
-
-    Returns:
-        True if password matches, False otherwise
-    """
+    """Verify a plaintext password against a bcrypt hash."""
     return bool(pwd_context.verify(plain_password, hashed_password))
 
 
-def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
-    """
-    Create a JWT access token.
+def create_access_token(
+    data: dict[str, Any],
+    expires_delta: timedelta | None = None,
+) -> str:
+    """Create a signed JWT access token."""
 
-    Args:
-        data: Data to encode in token
-        expires_delta: Token expiration time
-
-    Returns:
-        Encoded JWT token
-    """
     to_encode = data.copy()
 
-    if expires_delta:
-        expire = datetime.now() + expires_delta
-    else:
-        expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(UTC) + (
+        expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
+    )
 
     to_encode.update({"exp": expire})
 
-    return str(jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM))
+    return str(
+        jwt.encode(
+            to_encode,
+            settings.secret_key,
+            algorithm=settings.jwt_algorithm,
+        )
+    )
 
 
 def decode_access_token(token: str) -> dict[str, Any] | None:
-    """
-    Decode and verify a JWT token.
+    """Decode and verify a JWT access token."""
 
-    Args:
-        token: JWT token to decode
-
-    Returns:
-        Decoded token data if valid, None if invalid
-    """
     try:
         return cast(
             dict[str, Any],
-            jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]),
+            jwt.decode(
+                token,
+                settings.secret_key,
+                algorithms=[settings.jwt_algorithm],
+            ),
         )
 
-    except JWTError as e:
-        logger.warning("Invalid token: %s", e)
+    except JWTError:
+        logger.warning("Invalid or expired token")
         return None

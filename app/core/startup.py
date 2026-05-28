@@ -19,6 +19,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from app.api.deps import get_vector_store
+from app.core.config import settings
 from app.ingestion.chunkers.recursive_chunker import recursive_chunk_text
 from app.ingestion.loaders.docx_loader import load_docx
 from app.ingestion.loaders.pdf_loader import load_pdf
@@ -26,7 +27,7 @@ from app.retrieval.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
 
-SAMPLE_DOCS_DIR = Path("data/sample_docs")
+SAMPLE_DOCS_DIR = settings.sample_docs_dir
 
 SUPPORTED_LOADERS: dict[str, Callable[[str], str]] = {
     ".pdf": load_pdf,
@@ -147,8 +148,8 @@ def ingest_file(
 
     chunks = recursive_chunk_text(
         text,
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=settings.chunk_size,
+        chunk_overlap=settings.chunk_overlap,
     )
 
     if not chunks:

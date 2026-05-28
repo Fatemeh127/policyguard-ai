@@ -1,36 +1,65 @@
-# app/core/redis.py
-import logging
+"""
+Redis connection management utilities for PolicyGuard AI.
+"""
 
-import redis
-from redis import Redis
+import logging
+from collections.abc import Awaitable
+from functools import lru_cache
+from typing import cast
+
+import redis.asyncio as redis
+from redis.asyncio import Redis
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-_redis_client: Redis | None = None
 
-
+@lru_cache
 def get_redis_client() -> Redis:
-    global _redis_client
+    """
+    Return a shared async Redis client instance.
+    """
 
-    if _redis_client is None:
-        _redis_client = redis.Redis.from_url(
-            settings.redis_url,
-            decode_responses=True,
-            socket_timeout=5,
-            socket_connect_timeout=5,
-            retry_on_timeout=True,
-            health_check_interval=30,
-        )
-        _ping(_redis_client)
+    client: Redis = redis.from_url(
+        settings.redis_url,
+        decode_responses=True,
+        socket_timeout=5,
+        socket_connect_timeout=5,
+        health_check_interval=30,
+        retry_on_timeout=True,
+    )
 
-    return _redis_client
+    logger.info("Redis client initialized")
+
+    return client
 
 
-def _ping(client: Redis) -> None:
+async def ping_redis(client: Redis) -> bool:
+    """
+    Verify Redis connectivity.
+    """
+
     try:
-        client.ping()
-        logger.info("Redis connection established: %s", settings.redis_url)
+        await cast(Awaitable[bool], client.ping())
+
+        logger.info("Redis ping successful")
+
+        return True
+
     except redis.ConnectionError:
-        logger.warning("Redis ping failed — will retry on first use")
+        logger.warning("Redis ping failed")
+
+        return False
+
+
+async def close_redis_client() -> None:
+    """
+    Gracefully close Redis connections.
+    """
+
+    client = get_redis_client()
+
+    await cast(Awaitable[None], client.close())
+
+    logger.info("Redis client closed")

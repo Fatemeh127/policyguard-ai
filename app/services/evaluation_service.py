@@ -1,42 +1,58 @@
 """
-Evaluation Service — unified retrieval + generation evaluation.
+Evaluation Service — unified retrieval and generation evaluation.
 """
 
+from __future__ import annotations
+
+import logging
 import time
 from typing import Any
 
+from app.core.config import settings
 from app.llm.answer_service import generate_answer
 from app.retrieval.retriever import retrieve_chunks_with_metadata
 from app.retrieval.vector_store import VectorStore
 
+logger = logging.getLogger(__name__)
+
 
 class EvaluationService:
+    """Evaluate retrieval and generation quality for the RAG system."""
 
-    def __init__(self, vector_store: VectorStore | None = None):
+    def __init__(self, vector_store: VectorStore | None = None) -> None:
         self.vector_store = vector_store or VectorStore()
 
-    # Simple scoring
-    def _score_answer(self, generated: str, expected: str) -> float:
-        gen_words = set(generated.lower().split())
-        exp_words = set(expected.lower().split())
+    def _score_answer_overlap(self, generated: str, expected: str) -> float:
+        """
+        Score answer similarity using simple word overlap.
 
-        if not exp_words:
+        This is a lightweight baseline metric, not a semantic evaluation.
+        """
+
+        generated_words = set(generated.lower().split())
+        expected_words = set(expected.lower().split())
+
+        if not expected_words:
             return 0.0
 
-        overlap = gen_words & exp_words
-        return round(len(overlap) / len(exp_words), 2)
+        overlap = generated_words & expected_words
 
-    # Single case
+        return round(len(overlap) / len(expected_words), 3)
+
     def run_case(
         self,
         question: str,
         expected: str,
         role: str = "employee",
         top_k: int = 5,
-        min_score: float = 0.5,
+        min_score: float | None = None,
     ) -> dict[str, Any]:
+        """Run one evaluation case."""
 
-        # Retrieval
+        min_score = settings.min_retrieval_score if min_score is None else min_score
+
+        start_time = time.perf_counter()
+
         chunks = retrieve_chunks_with_metadata(
             query=question,
             vector_store=self.vector_store,
@@ -45,56 +61,104 @@ class EvaluationService:
             min_score=min_score,
         )
 
-        top_score = chunks[0]["score"] if chunks else None
+        retrieval_latency = round(time.perf_counter() - start_time, 3)
 
-        # Generation
-        generated = generate_answer(query=question, context_chunks=chunks)
+        top_score = max(
+            (float(chunk.get("score") or 0.0) for chunk in chunks),
+            default=0.0,
+        )
 
-        # Scoring
-        answer_text = generated.get("answer", "")
-        score = self._score_answer(answer_text, expected)
+        generation_start = time.perf_counter()
+
+        generated_result = generate_answer(
+            query=question,
+            context_chunks=chunks,
+            min_score=min_score,
+        )
+
+        generation_latency = round(time.perf_counter() - generation_start, 3)
+
+        answer_text = str(generated_result.get("answer", ""))
+
+        answer_score = self._score_answer_overlap(
+            generated=answer_text,
+            expected=expected,
+        )
+
+        passed = bool(chunks) and answer_score >= 0.5
 
         return {
             "question": question,
             "expected": expected,
-            "generated": generated,
-            "score": score,
+            "answer": answer_text,
+            "sources": generated_result.get("sources", []),
+            "answer_score": answer_score,
             "chunks_found": len(chunks),
             "top_score": top_score,
-            "passed": len(chunks) > 0,
+            "retrieval_latency_seconds": retrieval_latency,
+            "generation_latency_seconds": generation_latency,
+            "passed": passed,
         }
 
-    # Full evaluation
     def run_evaluation(
         self,
         dataset: list[dict[str, str]],
         role: str = "employee",
         top_k: int = 5,
-        min_score: float = 0.5,
+        min_score: float | None = None,
     ) -> dict[str, Any]:
+        """Run evaluation for a full dataset."""
 
-        start = time.time()
+        start_time = time.perf_counter()
 
-        results = []
-        total_score = 0.0
+        results: list[dict[str, Any]] = []
 
         for case in dataset:
-            result = self.run_case(
-                question=case["question"],
-                expected=case["expected"],
-                role=role,
-                top_k=top_k,
-                min_score=min_score,
+            try:
+                result = self.run_case(
+                    question=case["question"],
+                    expected=case["expected"],
+                    role=role,
+                    top_k=top_k,
+                    min_score=min_score,
+                )
+                results.append(result)
+
+            except Exception:
+                logger.exception(
+                    "Evaluation case failed | question=%s",
+                    case.get("question", "<missing>"),
+                )
+
+                results.append(
+                    {
+                        "question": case.get("question"),
+                        "expected": case.get("expected"),
+                        "error": True,
+                        "passed": False,
+                    }
+                )
+
+        total = len(results)
+
+        passed_count = sum(1 for result in results if result.get("passed"))
+
+        average_score = (
+            round(
+                sum(float(result.get("answer_score", 0.0)) for result in results) / total,
+                3,
             )
+            if total
+            else 0.0
+        )
 
-            results.append(result)
-            total_score += result["score"]
-
-        avg_score = round(total_score / len(results), 3) if results else 0.0
+        pass_rate = round(passed_count / total, 3) if total else 0.0
 
         return {
-            "total": len(results),
-            "average_score": avg_score,
-            "duration_seconds": round(time.time() - start, 3),
+            "total": total,
+            "passed": passed_count,
+            "pass_rate": pass_rate,
+            "average_score": average_score,
+            "duration_seconds": round(time.perf_counter() - start_time, 3),
             "results": results,
         }

@@ -1,53 +1,86 @@
-"""Content safety and filtering using moderation API."""
+"""Content moderation and safety filtering."""
 
-import logging
-import os
+from dataclasses import dataclass
 
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 
-logger = logging.getLogger(__name__)
+from app.core.config import settings
+from app.core.logging import get_logger
+from app.middleware.request_context import get_request_id
+
+logger = get_logger(__name__)
+
+client = OpenAI(
+    api_key=settings.openai_api_key,
+    timeout=settings.openai_timeout_seconds,
+    max_retries=settings.openai_max_retries,
+)
 
 
-def get_client() -> OpenAI:
+@dataclass
+class ModerationResult:
+    safe: bool
+    blocked: bool
+    reason: str | None = None
+
+
+def moderate_content(text: str) -> ModerationResult:
     """
-    Create OpenAI client lazily (safe with .env/config systems).
+    Moderate user content using OpenAI moderation API.
     """
-    return OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+    if not text.strip():
+        return ModerationResult(
+            safe=False,
+            blocked=True,
+            reason="empty_input",
+        )
 
-def check_content_safety(text: str) -> bool:
     try:
-        client = get_client()
 
-        response = client.moderations.create(model="omni-moderation-latest", input=text)
+        response = client.moderations.create(
+            model="omni-moderation-latest",
+            input=text,
+        )
 
         result = response.results[0]
 
         if result.flagged:
-            logger.warning("Unsafe content detected: %s", text)
-            return False
 
-        return True
+            logger.warning(
+                "Unsafe content blocked | request_id=%s",
+                get_request_id(),
+            )
 
-    except Exception as e:
-        logger.error("Moderation check failed: %s", str(e))
-        return True
+            return ModerationResult(
+                safe=False,
+                blocked=True,
+                reason="moderation_flagged",
+            )
 
+        return ModerationResult(
+            safe=True,
+            blocked=False,
+        )
 
-def filter_harmful_content(query: str) -> str | None:
-    try:
-        client = get_client()
+    except OpenAIError:
 
-        response = client.moderations.create(model="omni-moderation-latest", input=query)
+        logger.exception(
+            "Moderation API failed | request_id=%s",
+            get_request_id(),
+        )
 
-        result = response.results[0]
+        # configurable fail-open behavior
+        if settings.fail_open_moderation:
 
-        if result.flagged:
-            logger.warning("Blocked unsafe query: %s", query)
-            return None
+            return ModerationResult(
+                safe=True,
+                blocked=False,
+                reason="moderation_unavailable",
+            )
 
-        return query
-
-    except Exception as e:
-        logger.error("Filtering failed: %s", str(e))
-        return query
+        return ModerationResult(
+            safe=False,
+            blocked=True,
+            reason="moderation_unavailable",
+        )

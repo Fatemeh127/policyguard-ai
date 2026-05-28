@@ -4,10 +4,9 @@ from typing import Any
 
 from redis.asyncio import Redis
 
-logger = logging.getLogger(__name__)
+from app.core.config import settings
 
-CHAT_TTL = 60 * 60 * 24  # 24h
-MAX_MESSAGES = 50
+logger = logging.getLogger(__name__)
 
 
 def _key(session_id: str) -> str:
@@ -47,8 +46,8 @@ async def save_chat_history(
     redis: Redis,
 ) -> None:
     """Persist chat history for a session, capping at MAX_MESSAGES."""
-    if len(messages) > MAX_MESSAGES:
-        messages = messages[-MAX_MESSAGES:]
+    if len(messages) > settings.MAX_MESSAGES:
+        messages = messages[-settings.MAX_MESSAGES :]
 
     try:
         payload = json.dumps(messages)
@@ -57,7 +56,7 @@ async def save_chat_history(
         raise
 
     try:
-        await redis.setex(_key(session_id), CHAT_TTL, payload)
+        await redis.setex(_key(session_id), settings.CHAT_TTL, payload)
     except Exception:
         logger.exception("Redis SETEX failed for session %s", session_id)
         raise
