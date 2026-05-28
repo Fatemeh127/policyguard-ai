@@ -1,18 +1,4 @@
-"""
-Startup ingestion utilities for PolicyGuard AI.
-
-This module contains application startup tasks related to loading sample
-documents into the vector database. It keeps document ingestion separate
-from FastAPI application initialization so the project remains modular,
-testable, and easier to maintain.
-
-Responsibilities:
-- Discover role-based sample documents from data/sample_docs/<role>/
-- Load supported PDF and DOCX files
-- Split extracted text into chunks
-- Store chunks in the vector database with role metadata
-- Optionally skip already-ingested documents to avoid duplicate chunks
-"""
+"""Startup ingestion utilities for PolicyGuard AI."""
 
 import logging
 from collections.abc import Callable
@@ -27,8 +13,6 @@ from app.retrieval.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
 
-SAMPLE_DOCS_DIR = settings.sample_docs_dir
-
 SUPPORTED_LOADERS: dict[str, Callable[[str], str]] = {
     ".pdf": load_pdf,
     ".docx": load_docx,
@@ -37,17 +21,18 @@ SUPPORTED_LOADERS: dict[str, Callable[[str], str]] = {
 ROLES = ("employee", "manager", "admin")
 
 
-def get_role_directories(base_dir: Path = SAMPLE_DOCS_DIR) -> list[tuple[str, Path]]:
-    """Return valid role directories that contain sample documents."""
+def get_role_directories(base_dir: Path | None = None) -> list[tuple[str, Path]]:
+    """Return valid role directories under the sample docs directory."""
+    root_dir = base_dir or settings.sample_docs_dir
 
-    if not base_dir.exists():
-        logger.warning("Sample documents directory not found: %s", base_dir)
+    if not root_dir.exists():
+        logger.warning("Sample documents directory not found: %s", root_dir)
         return []
 
     role_directories: list[tuple[str, Path]] = []
 
     for role in ROLES:
-        role_dir = base_dir / role
+        role_dir = root_dir / role
 
         if not role_dir.exists():
             logger.warning("Role directory not found: %s", role_dir)
@@ -63,25 +48,24 @@ def get_role_directories(base_dir: Path = SAMPLE_DOCS_DIR) -> list[tuple[str, Pa
 
 
 def get_supported_files(role_dir: Path) -> list[Path]:
-    """Return supported PDF and DOCX files from a role directory."""
-
+    """Return supported PDF and DOCX files recursively from a role directory."""
     files: list[Path] = []
 
     for suffix in SUPPORTED_LOADERS:
-        files.extend(role_dir.glob(f"*{suffix}"))
+        files.extend(role_dir.rglob(f"*{suffix}"))
 
-    return sorted(files)
+    return sorted(file for file in files if file.is_file())
 
 
 def build_document_id(role: str, file_path: Path) -> str:
     """Build a stable role-aware document ID."""
-
-    return f"{role}_{file_path.stem}"
+    safe_name = file_path.stem.lower().replace(" ", "_")
+    extension = file_path.suffix.lower().lstrip(".")
+    return f"{role}_{safe_name}_{extension}"
 
 
 def load_document_text(file_path: Path) -> str:
     """Load text from a supported document file."""
-
     loader = SUPPORTED_LOADERS.get(file_path.suffix.lower())
 
     if loader is None:
@@ -95,22 +79,29 @@ def document_already_loaded(
     document_id: str,
     role: str,
 ) -> bool:
-    """
-    Check whether a document is already loaded.
-
-    This function is intentionally defensive because different VectorStore
-    implementations may not support the same helper methods.
-
-    If your VectorStore has a method such as document_exists(), this function
-    will use it. Otherwise, it returns False and allows ingestion to continue.
-    """
-
+    """Check whether a document is already loaded."""
     exists_method = getattr(vector_store, "document_exists", None)
 
     if callable(exists_method):
         return bool(exists_method(document_id=document_id, role=role))
 
     return False
+
+
+def delete_existing_document(
+    vector_store: VectorStore,
+    document_id: str,
+    role: str,
+) -> None:
+    """Delete an existing document if the vector store supports deletion."""
+    delete_method = getattr(vector_store, "delete_document", None)
+
+    if callable(delete_method):
+        delete_method(document_id=document_id, role=role)
+        logger.info("Deleted existing document before reload: %s | role=%s", document_id, role)
+        return
+
+    logger.warning("force_reload=True, but vector store has no delete_document method")
 
 
 def ingest_file(
@@ -120,30 +111,22 @@ def ingest_file(
     force_reload: bool = False,
 ) -> int:
     """Load, chunk, and store one file in the vector database."""
+    if role not in ROLES:
+        raise ValueError(f"Unsupported role: {role}")
 
     document_id = build_document_id(role=role, file_path=file_path)
 
     if not force_reload and document_already_loaded(vector_store, document_id, role):
-        logger.info(
-            "Skipping already-loaded document: %s | role=%s",
-            document_id,
-            role,
-        )
+        logger.info("Skipping already-loaded document: %s | role=%s", document_id, role)
         return 0
 
     if force_reload:
-        delete_method = getattr(vector_store, "delete_document", None)
-
-        if callable(delete_method):
-            delete_method(document_id=document_id, role=role)
-            logger.info("Deleted existing document before reload: %s", document_id)
-        else:
-            logger.warning("force_reload=True, but vector store has no delete_document method")
+        delete_existing_document(vector_store, document_id, role)
 
     text = load_document_text(file_path)
 
     if not text.strip():
-        logger.warning("Skipping empty document: %s", file_path.name)
+        logger.warning("Skipping empty document: %s | role=%s", file_path.name, role)
         return 0
 
     chunks = recursive_chunk_text(
@@ -153,7 +136,7 @@ def ingest_file(
     )
 
     if not chunks:
-        logger.warning("No chunks created for document: %s", file_path.name)
+        logger.warning("No chunks created for document: %s | role=%s", file_path.name, role)
         return 0
 
     inserted_count = vector_store.add_documents(
@@ -163,9 +146,10 @@ def ingest_file(
     )
 
     logger.info(
-        "Loaded document successfully | document_id=%s | role=%s | chunks=%d",
+        "Loaded document successfully | document_id=%s | role=%s | file=%s | chunks=%d",
         document_id,
         role,
+        file_path.name,
         inserted_count,
     )
 
@@ -173,13 +157,7 @@ def ingest_file(
 
 
 def load_sample_documents(force_reload: bool = False) -> int:
-    """
-    Load all role-based sample documents into the vector database.
-
-    Returns:
-        Total number of chunks inserted into the vector database.
-    """
-
+    """Load all role-based sample documents into the vector database."""
     vector_store = get_vector_store()
     total_chunks = 0
 
@@ -207,11 +185,10 @@ def load_sample_documents(force_reload: bool = False) -> int:
                     role=role,
                     force_reload=force_reload,
                 )
-
             except Exception:
                 logger.exception(
                     "Failed to ingest document: %s | role=%s",
-                    file_path.name,
+                    file_path,
                     role,
                 )
 
@@ -220,15 +197,8 @@ def load_sample_documents(force_reload: bool = False) -> int:
 
 
 def ensure_sample_data(force_reload: bool = False) -> None:
-    """
-    Safe startup wrapper for sample document ingestion.
-
-    This function should be called from the FastAPI lifespan startup block.
-    It logs ingestion failures without crashing the whole application.
-    """
-
+    """Safe startup wrapper for sample document ingestion."""
     try:
         load_sample_documents(force_reload=force_reload)
-
     except Exception:
         logger.exception("Startup sample document ingestion failed")

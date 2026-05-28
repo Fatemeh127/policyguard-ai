@@ -27,11 +27,10 @@ async def get_current_role(
     x_api_key: Annotated[
         str | None,
         Header(
-            default=None,
             alias="X-API-Key",
             description="API key for authentication",
         ),
-    ],
+    ] = None,
 ) -> Role:
     """
     Verify the API key from the X-API-Key header and return the caller role.

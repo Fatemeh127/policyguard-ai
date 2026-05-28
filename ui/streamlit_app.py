@@ -223,7 +223,8 @@ def display_answer(response: dict[str, Any] | None) -> None:
                     st.caption(f"Similarity: {score:.3f}")
                     st.write(preview)
                     st.divider()
-   
+
+
 # Health Status
 def display_health_status() -> None:
     """Display backend health."""
