@@ -2,10 +2,10 @@
 Redis connection management utilities for PolicyGuard AI.
 """
 
+import inspect
 import logging
 from collections.abc import Awaitable
 from functools import lru_cache
-from typing import cast
 
 import redis.asyncio as redis
 from redis.asyncio import Redis
@@ -15,11 +15,22 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
+async def _maybe_await_bool(value: Awaitable[bool] | bool) -> bool:
+    """Return bool from either an awaitable bool or a direct bool."""
+    if inspect.isawaitable(value):
+        return await value
+    return value
+
+
+async def _maybe_await_none(value: Awaitable[None] | None) -> None:
+    """Handle either an awaitable None or direct None."""
+    if inspect.isawaitable(value):
+        await value
+
+
 @lru_cache
 def get_redis_client() -> Redis:
-    """
-    Return a shared async Redis client instance.
-    """
+    """Return a shared async Redis client instance."""
 
     client: Redis = redis.from_url(
         settings.redis_url,
@@ -36,30 +47,26 @@ def get_redis_client() -> Redis:
 
 
 async def ping_redis(client: Redis) -> bool:
-    """
-    Verify Redis connectivity.
-    """
+    """Verify Redis connectivity."""
 
     try:
-        await cast(Awaitable[bool], client.ping())
+        result = client.ping()
+        await _maybe_await_bool(result)
 
         logger.info("Redis ping successful")
-
         return True
 
     except redis.ConnectionError:
         logger.warning("Redis ping failed")
-
         return False
 
 
 async def close_redis_client() -> None:
-    """
-    Gracefully close Redis connections.
-    """
+    """Gracefully close Redis connections."""
 
     client = get_redis_client()
 
-    await cast(Awaitable[None], client.close())
+    result = client.close()
+    await _maybe_await_none(result)
 
     logger.info("Redis client closed")
