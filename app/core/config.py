@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # App
     environment: Literal["development", "staging", "production"] = "development"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    debug: bool = False
+    app_debug: bool = False
     log_file: str | None = None
 
     # CORS
@@ -84,8 +84,8 @@ class Settings(BaseSettings):
     fail_open_moderation: bool = True
 
     # Chunking
-    chunk_size: int = Field(default=1000, gt=0)
-    chunk_overlap: int = Field(default=200, ge=0)
+    chunk_size: int = Field(default=500, gt=0)
+    chunk_overlap: int = Field(default=100, ge=0)
     sample_docs_dir: Path = Field(default=Path("data/sample_docs"))
 
     model_config = SettingsConfigDict(
@@ -185,6 +185,11 @@ class Settings(BaseSettings):
             raise ValueError("Wildcard CORS origin '*' is not allowed")
 
         return cleaned
+
+    @property
+    def debug(self) -> bool:
+        """Whether application debug mode is enabled."""
+        return self.app_debug
 
     @property
     def api_key_role_map(self) -> dict[str, str]:

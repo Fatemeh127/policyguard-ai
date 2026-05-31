@@ -6,7 +6,6 @@ and indexing files into the vector database.
 import logging
 import os
 import tempfile
-import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
@@ -51,7 +50,8 @@ async def ingest_document(
             raise HTTPException(400, "Only PDF and DOCX supported")
 
         # unique document id
-        document_id = f"{document_id}_{uuid.uuid4().hex}"
+        safe_document_id = document_id.strip().lower().replace(" ", "_")
+        document_id = f"{role}_{safe_document_id}_{suffix.lstrip('.')}"
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(file_content)

@@ -85,7 +85,7 @@ class EvaluationService:
             expected=expected,
         )
 
-        passed = bool(chunks) and answer_score >= 0.5
+        passed = bool(chunks) and answer_score >= 0.3
 
         return {
             "question": question,

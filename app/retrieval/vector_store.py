@@ -109,16 +109,20 @@ class VectorStore:
         failed = 0
 
         for i, chunk in enumerate(chunks):
+            chunk_id = chunk.get("chunk_id", i)
+            point_key = f"{document_id}_{role}_{chunk_id}"
+            point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, point_key))
+
             try:
                 embedding = get_embedding(chunk["text"])
 
                 points.append(
                     PointStruct(
-                        id=str(uuid.uuid4()),
+                        id=point_id,
                         vector=embedding,
                         payload={
                             "document_id": document_id,
-                            "chunk_id": chunk.get("chunk_id", i),
+                            "chunk_id": chunk_id,
                             "role": role,
                             "text": chunk["text"],
                             "char_count": len(chunk["text"]),
