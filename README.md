@@ -519,7 +519,9 @@ Internet → Nginx (TLS termination)
      Qdrant           Redis
 ```
 
-Deployment targets: AWS EC2.
+<<<<<<<
+=======
+>>>>>>>
 
 ---
 
