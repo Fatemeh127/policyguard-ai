@@ -1,4 +1,18 @@
 # PolicyGuard AI
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Engineering Highlights](#key-engineering-highlights)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Installation](#installation)
+- [API Endpoints](#api-endpoints)
+- [Evaluation Framework](#sample-evaluation-output)
+- [Monitoring Dashboard](#monitoring-dashboard)
+- [Screenshots](#screenshots)
+- [Production Deployment](#production-deployment)
+- [Future Improvements](#future-improvements)
 
 > **Production-ready RAG system for organizational documents with role-based access control**
 
