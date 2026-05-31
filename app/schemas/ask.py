@@ -1,4 +1,4 @@
-"""Schemas for ask endpoint."""
+"""Pydantic schemas for ask endpoint."""
 
 from typing import Any
 

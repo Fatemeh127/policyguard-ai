@@ -40,9 +40,15 @@ class RAGPipeline:
 
     def _is_prompt_injection(self, query: str) -> bool:
         normalized_query = query.lower()
+
         return any(re.search(pattern, normalized_query) for pattern in PROMPT_INJECTION_PATTERNS)
 
-    def _validate_inputs(self, query: str, role: str, limit: int) -> str | None:
+    def _validate_inputs(
+        self,
+        query: str,
+        role: str,
+        limit: int,
+    ) -> str | None:
         if role not in VALID_ROLES:
             return "Invalid role."
 
@@ -64,32 +70,44 @@ class RAGPipeline:
         limit: int = 5,
     ) -> tuple[AskResponse, list[dict[str, Any]]]:
         trace = TraceLogger(component="RAGPipeline")
+
         start_time = time.perf_counter()
 
-        validation_error = self._validate_inputs(query=query, role=role, limit=limit)
+        validation_error = self._validate_inputs(
+            query=query,
+            role=role,
+            limit=limit,
+        )
 
         if validation_error:
             trace.log_blocked("validation_failed")
+
             return self._error_response(validation_error), []
 
         try:
+            # Safety
             with trace.span("input_safety"):
                 moderation = moderate_content(query)
 
                 if moderation.blocked:
                     trace.log_blocked(moderation.reason or "moderation_blocked")
+
                     return self._blocked_response(), []
 
                 query = query.strip()
 
+            # Prompt Injection
             if self._is_prompt_injection(query):
                 trace.log_blocked("prompt_injection")
+
                 logger.warning(
                     "Prompt injection attempt detected | request_id=%s",
                     get_request_id(),
                 )
+
                 return self._blocked_response(), []
 
+            # Retrieval
             with trace.span("retrieval"):
                 chunks = retrieve_chunks_with_metadata(
                     query=query,
@@ -100,6 +118,7 @@ class RAGPipeline:
 
                 if not chunks:
                     trace.log_fallback("no_chunks")
+
                     return self._fallback_response(), []
 
                 max_score = max(
@@ -107,39 +126,63 @@ class RAGPipeline:
                     default=0.0,
                 )
 
-                trace.log_retrieval(
-                    chunk_count=len(chunks),
-                    max_score=max_score,
-                )
+                # IMPORTANT:
+                # Observability must NEVER crash the pipeline
+                try:
+                    trace.log_retrieval(
+                        num_chunks=len(chunks),
+                        max_score=max_score,
+                    )
+
+                except Exception:
+                    logger.exception("Retrieval tracing failed")
 
                 if max_score < settings.min_retrieval_score:
                     trace.log_fallback("low_retrieval_score")
+
+                    logger.warning(
+                        "Retrieval score below threshold | max_score=%.3f | threshold=%.3f",
+                        max_score,
+                        settings.min_retrieval_score,
+                    )
+
                     return self._fallback_response(), chunks
 
+            # Generation
             with trace.span("generation"):
                 try:
                     result = generate_answer(
                         query=query,
                         context_chunks=chunks,
                     )
+
                 except Exception:
                     logger.exception("LLM generation failed")
+
                     trace.error("generation_failed")
+
                     return self._fallback_response(), chunks
 
                 if not result:
                     trace.log_fallback("empty_generation_result")
+
                     return self._fallback_response(), chunks
 
             answer = str(result.get("answer", "")).strip()
+
             sources = result.get("sources", [])
+
             metadata = result.get("metadata", {})
 
             if not answer:
                 trace.log_fallback("empty_answer")
+
                 return self._fallback_response(), chunks
 
-            latency_seconds = round(time.perf_counter() - start_time, 3)
+            latency_seconds = round(
+                time.perf_counter() - start_time,
+                3,
+            )
 
             trace.log_generation(len(answer))
 
@@ -167,7 +210,9 @@ class RAGPipeline:
 
         except Exception:
             logger.exception("Pipeline failed completely")
+
             trace.error("pipeline_failed")
+
             return self._fallback_response(), []
 
     def _blocked_response(self) -> AskResponse:

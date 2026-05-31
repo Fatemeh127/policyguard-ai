@@ -1,3 +1,7 @@
+"""
+Tests for role-based access control (RBAC) in vector retrieval.
+"""
+
 from unittest.mock import patch
 
 from app.api.deps import get_vector_store

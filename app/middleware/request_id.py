@@ -1,3 +1,7 @@
+"""
+Middleware for request tracing and correlation ID propagation.
+"""
+
 import logging
 from collections.abc import Awaitable, Callable
 from uuid import uuid4

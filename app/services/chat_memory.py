@@ -1,3 +1,7 @@
+"""
+Chat memory management utilities for conversational context persistence.
+"""
+
 import json
 import logging
 from typing import Any

@@ -1,3 +1,7 @@
+"""
+Pydantic schemas for RAG evaluation requests and responses.
+"""
+
 from pydantic import BaseModel
 
 

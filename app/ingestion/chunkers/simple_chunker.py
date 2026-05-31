@@ -1,3 +1,8 @@
+"""
+Text chunking utilities for splitting large documents into
+overlapping segments suitable for embedding and retrieval.
+"""
+
 import logging
 from typing import TypedDict
 

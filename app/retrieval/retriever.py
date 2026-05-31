@@ -10,13 +10,20 @@ from app.retrieval.vector_store import VectorStore
 logger = logging.getLogger(__name__)
 
 
+ROLE_ACCESS: dict[str, list[str]] = {
+    "employee": ["employee"],
+    "manager": ["manager", "employee"],
+    "admin": ["admin", "manager", "employee"],
+}
+
+
 def _search_vector_store(
     query: str,
     vector_store: VectorStore,
     role: str,
     top_k: int,
 ) -> list[dict[str, Any]]:
-    """Safely search the vector store."""
+    """Safely search the vector store for a single role."""
 
     try:
         results = vector_store.search(
@@ -42,6 +49,42 @@ def _search_vector_store(
     return results
 
 
+def _search_accessible_roles(
+    query: str,
+    vector_store: VectorStore,
+    role: str,
+    top_k: int,
+) -> list[dict[str, Any]]:
+    """Search all roles accessible by the caller role."""
+
+    accessible_roles = ROLE_ACCESS.get(role)
+
+    if accessible_roles is None:
+        logger.warning("Unknown role received for retrieval: %s", role)
+        return []
+
+    all_results: list[dict[str, Any]] = []
+
+    for accessible_role in accessible_roles:
+        role_results = _search_vector_store(
+            query=query,
+            vector_store=vector_store,
+            role=accessible_role,
+            top_k=top_k,
+        )
+
+        all_results.extend(role_results)
+
+    logger.debug(
+        "Vector search completed across accessible roles | role=%s | roles=%s | results=%d",
+        role,
+        accessible_roles,
+        len(all_results),
+    )
+
+    return all_results
+
+
 def _get_filtered_results(
     query: str,
     vector_store: VectorStore,
@@ -50,10 +93,10 @@ def _get_filtered_results(
     min_score: float,
 ) -> list[dict[str, Any]]:
     """
-    Search, filter, deduplicate, sort, and retry once if no useful chunks remain.
+    Search all accessible roles, filter, deduplicate, sort, and retry once if needed.
     """
 
-    results = _search_vector_store(
+    results = _search_accessible_roles(
         query=query,
         vector_store=vector_store,
         role=role,
@@ -76,7 +119,7 @@ def _get_filtered_results(
         top_k * 2,
     )
 
-    retry_results = _search_vector_store(
+    retry_results = _search_accessible_roles(
         query=query,
         vector_store=vector_store,
         role=role,

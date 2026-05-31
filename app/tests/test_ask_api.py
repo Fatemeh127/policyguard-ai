@@ -1,3 +1,7 @@
+"""
+Tests for API authentication and authorization behavior.
+"""
+
 from fastapi.testclient import TestClient
 
 from app.api.main import app

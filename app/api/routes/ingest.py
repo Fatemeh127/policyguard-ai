@@ -1,3 +1,8 @@
+"""
+Document ingestion pipeline for loading, chunking, embedding,
+and indexing files into the vector database.
+"""
+
 import logging
 import os
 import tempfile

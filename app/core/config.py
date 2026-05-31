@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import ClassVar, Literal
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     # Qdrant
     qdrant_url: str = Field(default="http://localhost:6333")
     qdrant_collection_name: str = Field(default="policyguard_docs", min_length=1)
-    embedding_dim: int = Field(default=1536, gt=0)
 
     # Redis
     redis_url: str = Field(default="redis://localhost:6379")
@@ -53,7 +52,7 @@ class Settings(BaseSettings):
     openai_max_retries: int = Field(default=2, ge=0)
 
     # Retrieval
-    min_retrieval_score: float = Field(default=0.5, ge=0.0, le=1.0)
+    min_retrieval_score: float = Field(default=0.3, ge=0.0, le=1.0)
 
     # Security
     employee_api_key: str = Field(..., min_length=16)
@@ -95,6 +94,27 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
+    # Embeddings
+    embedding_model: str = Field(default="text-embedding-3-small")
+    embedding_dim: int = Field(default=1536, gt=0)
+
+    EMBEDDING_DIMENSIONS: ClassVar[dict[str, int]] = {
+        "text-embedding-3-small": 1536,
+        "text-embedding-3-large": 3072,
+    }
+
+    @model_validator(mode="after")
+    def validate_embedding_settings(self) -> "Settings":
+        expected_dim = Settings.EMBEDDING_DIMENSIONS.get(self.embedding_model)
+
+        if expected_dim and self.embedding_dim != expected_dim:
+            raise ValueError(
+                f"embedding_dim ({self.embedding_dim}) does not match "
+                f"{self.embedding_model} ({expected_dim})"
+            )
+
+        return self
 
     @model_validator(mode="after")
     def validate_chunking(self) -> "Settings":

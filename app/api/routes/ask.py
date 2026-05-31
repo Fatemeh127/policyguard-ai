@@ -51,13 +51,12 @@ async def ask_question(
             len(ask_request.query),
         )
 
-        # --- Load chat history ---
+        # Load chat history
         history = await get_chat_history(ask_request.session_id, redis)
         history.append({"role": "user", "content": ask_request.query})
 
-        # --- Build RAG query ---
-        context_query = "\n".join([m["content"] for m in history[-6:]])
-
+        # Build RAG query
+        context_query = ask_request.query
         pipeline = RAGPipeline(vector_store=vs)
 
         rag_response, chunks = await asyncio.to_thread(

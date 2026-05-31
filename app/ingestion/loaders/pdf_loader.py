@@ -1,3 +1,7 @@
+"""
+PDF document loader using PyMuPDF (fitz).
+"""
+
 from pathlib import Path
 
 import fitz

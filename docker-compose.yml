@@ -11,7 +11,7 @@ volumes:
   grafana_data:
 
 services:
-  # ==================== CORE SERVICES ====================
+  # CORE SERVICES 
   
   # Qdrant Vector Database
   qdrant:
@@ -37,7 +37,7 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
 
-  # ==================== OBSERVABILITY STACK ====================
+  # OBSERVABILITY STACK
   
   # Loki (Log Aggregation)
   loki:
@@ -101,7 +101,7 @@ services:
       - prometheus
       - loki
 
-  # ==================== APPLICATION SERVICES ====================
+  # APPLICATION SERVICES
   
   # FastAPI Backend
   backend:

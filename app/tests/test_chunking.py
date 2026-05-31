@@ -1,3 +1,7 @@
+"""
+Tests for text chunking behavior and chunk size constraints.
+"""
+
 from app.ingestion.chunkers.simple_chunker import chunk_text
 
 

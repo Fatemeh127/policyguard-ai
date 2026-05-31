@@ -8,7 +8,6 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Global client (reused across calls)
 client = OpenAI(api_key=settings.openai_api_key)
 
 
@@ -20,31 +19,32 @@ class EmbeddingError(Exception):
 
 def get_embedding(text: str) -> list[float]:
     """
-    Convert text to embedding vector using OpenAI.
-
-    Args:
-        text: Input text to embed
-
-    Returns:
-        List of floats (1536 dimensions for text-embedding-3-small)
-
-    Raises:
-        ValueError: If text is empty
-        EmbeddingError: If OpenAI API fails
+    Convert text to embedding vector using the configured embedding model.
     """
+
     if not text or not text.strip():
         raise ValueError("Input text cannot be empty")
 
     cleaned_text = text.strip()
 
     try:
-        logger.debug("Generating embedding for text (length: %d chars)", len(cleaned_text))
+        logger.debug(
+            "Generating embedding | model=%s | text_length=%d",
+            settings.embedding_model,
+            len(cleaned_text),
+        )
 
-        response = client.embeddings.create(input=cleaned_text, model="text-embedding-3-small")
+        response = client.embeddings.create(
+            input=cleaned_text,
+            model=settings.embedding_model,
+        )
 
         embedding = response.data[0].embedding
 
-        logger.debug("Successfully generated %d-dimensional embedding", len(embedding))
+        logger.debug(
+            "Embedding generated successfully | dimensions=%d",
+            len(embedding),
+        )
 
         return embedding
 
