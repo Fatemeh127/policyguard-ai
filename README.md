@@ -519,7 +519,7 @@ Internet → Nginx (TLS termination)
      Qdrant           Redis
 ```
 
-Deployment targets: AWS EC2, Azure VM, Google Cloud VM, any Docker host.
+Deployment targets: AWS EC2.
 
 ---
 
