@@ -74,6 +74,23 @@ async def root() -> dict[str, Any]:
     }
 
 
+@app.get("/api/info")
+async def app_info() -> dict[str, Any]:
+    """Return basic application information."""
+
+    return {
+        "name": "PolicyGuard AI",
+        "environment": settings.environment,
+        "version": "0.1.0",
+        "features": [
+            "RAG",
+            "RBAC",
+            "Qdrant retrieval",
+            "Prometheus metrics",
+        ],
+    }
+
+
 app.include_router(health.router, prefix="/api", tags=["Health"])
 app.include_router(ask.router, prefix="/api", tags=["Q&A"])
 app.include_router(ingest.router, prefix="/api", tags=["Ingestion"])

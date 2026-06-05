@@ -10,7 +10,7 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 # Configuration
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.policyguard-ai.com")
 
 # Show connection info in debug mode
 if st.sidebar.checkbox("Show Debug Info"):
@@ -275,7 +275,7 @@ def main() -> None:
     st.markdown('<div class="main-header">📚 PolicyGuard AI</div>', unsafe_allow_html=True)
 
     st.markdown(
-        '<div class="sub-header">AI Document Assistant with Role-Based Access</div>',
+        '<div class="sub-header">AI Document Assistant with Role-Based Access Control</div>',
         unsafe_allow_html=True,
     )
 

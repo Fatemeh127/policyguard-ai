@@ -12,6 +12,7 @@ from redis.asyncio import Redis
 
 from app.api.deps import get_vector_store
 from app.core.dependencies import get_current_role
+from app.core.redis import get_redis_client
 from app.ingestion.pipeline import RAGPipeline
 from app.middleware.rate_limiter import limiter
 from app.observability.usage_tracker import UsageTracker, get_usage_tracker
@@ -23,12 +24,6 @@ from app.services.chat_memory import get_chat_history, save_chat_history
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-redis_client = Redis(host="redis", port=6379, decode_responses=True)
-
-
-def get_redis() -> Redis:
-    return redis_client
-
 
 @router.post("/ask", response_model=AskResponse)
 @limiter.limit("10/minute")
@@ -39,7 +34,7 @@ async def ask_question(
     vs: Annotated[VectorStore, Depends(get_vector_store)],
     tracker: Annotated[UsageTracker, Depends(get_usage_tracker)],
     user_role: Annotated[str, Depends(get_current_role)],
-    redis: Redis = Depends(get_redis),
+    redis: Redis = Depends(get_redis_client),
 ) -> AskResponse:
     start_time = time.time()
 

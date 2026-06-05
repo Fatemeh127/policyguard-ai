@@ -36,6 +36,7 @@ class Settings(BaseSettings):
         default_factory=lambda: [
             "http://localhost:8501",
             "http://127.0.0.1:8501",
+            "https://policyguard-ai.com",
         ]
     )
 
