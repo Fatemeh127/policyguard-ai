@@ -20,6 +20,11 @@ from app.retrieval.vector_store import VectorStore
 from app.schemas.ask import AskRequest, AskResponse
 from app.schemas.common import Source
 from app.services.chat_memory import get_chat_history, save_chat_history
+from app.services.response_cache import (
+    get_cached_response,
+    make_cache_key,
+    save_cached_response,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -46,11 +51,34 @@ async def ask_question(
             len(ask_request.query),
         )
 
-        # Load chat history
         history = await get_chat_history(ask_request.session_id, redis)
         history.append({"role": "user", "content": ask_request.query})
 
-        # Build RAG query
+        cache_key = make_cache_key(
+            query=ask_request.query,
+            role=user_role,
+            limit=ask_request.limit,
+        )
+
+        cached_response = await get_cached_response(redis, cache_key)
+
+        if cached_response is not None:
+            logger.info("Cache hit for ask endpoint")
+
+            cached_ask_response = AskResponse(**cached_response)
+
+            history.append({"role": "assistant", "content": cached_ask_response.answer})
+            await save_chat_history(ask_request.session_id, history, redis)
+
+            response.headers["X-Cache"] = "HIT"
+            response.headers["X-RateLimit-Limit"] = "10"
+            response.headers["X-RateLimit-Remaining"] = "unknown"
+
+            return cached_ask_response
+
+        logger.info("Cache miss for ask endpoint")
+        response.headers["X-Cache"] = "MISS"
+
         context_query = ask_request.query
         pipeline = RAGPipeline(vector_store=vs)
 
@@ -61,11 +89,9 @@ async def ask_question(
             limit=ask_request.limit,
         )
 
-        # Save assistant response
         history.append({"role": "assistant", "content": rag_response.answer})
         await save_chat_history(ask_request.session_id, history, redis)
 
-        # Metrics
         latency_sec = time.time() - start_time
         latency_ms = latency_sec * 1000
 
@@ -78,7 +104,6 @@ async def ask_question(
         completion_tokens = len(rag_response.answer) // 4
         total_tokens = prompt_tokens + completion_tokens
 
-        # Confidence estimate
         scores: list[float] = [
             float(c["score"])
             for c in chunks
@@ -98,7 +123,6 @@ async def ask_question(
         except Exception as e:
             logger.warning("Usage tracking failed: %s", str(e))
 
-        # Add request-level metadata to API response
         if rag_response.metadata is None:
             rag_response.metadata = {}
 
@@ -109,10 +133,10 @@ async def ask_question(
                 "total_tokens": total_tokens,
                 "latency_seconds": latency_sec,
                 "confidence": confidence,
+                "cache": "MISS",
             }
         )
 
-        # Headers
         response.headers["X-RateLimit-Limit"] = "10"
         response.headers["X-RateLimit-Remaining"] = "unknown"
 
@@ -123,7 +147,7 @@ async def ask_question(
             rag_response.context_used,
             total_tokens,
         )
-        # Add sources with preview text
+
         rag_response.sources = [
             Source(
                 document_id=str(c.get("document_id", "Unknown")),
@@ -134,6 +158,12 @@ async def ask_question(
             for c in chunks
             if isinstance(c, dict)
         ]
+
+        await save_cached_response(
+            redis=redis,
+            cache_key=cache_key,
+            response_data=rag_response.model_dump(),
+        )
 
         return rag_response
 
