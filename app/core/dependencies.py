@@ -64,4 +64,4 @@ async def get_current_role(
         raise _auth_error("Invalid API key")
 
     logger.debug("Authenticated request with role: %s", role)
-    return role  # type: ignore[return-value]
+    return role  
