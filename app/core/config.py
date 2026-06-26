@@ -7,9 +7,13 @@ from typing import ClassVar, Literal
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.types import Role
+
 
 class Settings(BaseSettings):
     """Application configuration loaded from environment variables or .env file."""
+
+    load_sample_data: bool = True
 
     # OpenAI
     openai_api_key: str = Field(..., min_length=1)
@@ -193,7 +197,7 @@ class Settings(BaseSettings):
         return self.app_debug
 
     @property
-    def api_key_role_map(self) -> dict[str, str]:
+    def api_key_role_map(self) -> dict[str, Role]:
         """Map API keys to application roles."""
         return {
             self.employee_api_key: "employee",

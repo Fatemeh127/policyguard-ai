@@ -1,16 +1,16 @@
 """FastAPI dependencies for API-key authentication."""
 
 import logging
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import Header, HTTPException, status
 
 from app.core.config import settings
 from app.core.security import verify_api_key
+from app.core.types import Role
 
 logger = logging.getLogger(__name__)
 
-Role = Literal["employee", "manager", "admin"]
 
 
 def _auth_error(detail: str) -> HTTPException:

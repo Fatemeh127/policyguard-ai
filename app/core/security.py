@@ -9,13 +9,14 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
+from app.core.types import Role
 
 logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def verify_api_key(api_key: str) -> str | None:
+def verify_api_key(api_key: str) -> Role | None:
     """Verify an API key and return the associated role if valid."""
 
     for stored_key, role in settings.api_key_role_map.items():

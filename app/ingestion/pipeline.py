@@ -6,7 +6,6 @@ import re
 import time
 from typing import Any
 
-from app.api.deps import get_vector_store
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.llm.answer_service import generate_answer
@@ -35,8 +34,8 @@ VALID_ROLES = {"employee", "manager", "admin"}
 class RAGPipeline:
     """Main Retrieval-Augmented Generation orchestration pipeline."""
 
-    def __init__(self, vector_store: VectorStore | None = None) -> None:
-        self.vector_store = vector_store or get_vector_store()
+    def __init__(self, vector_store: VectorStore) -> None:
+        self.vector_store = vector_store
 
     def _is_prompt_injection(self, query: str) -> bool:
         normalized_query = query.lower()

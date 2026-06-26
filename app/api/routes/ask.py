@@ -2,29 +2,16 @@
 Ask endpoint — production-grade RAG Q&A API.
 """
 
-import asyncio
 import logging
-import time
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from redis.asyncio import Redis
 
-from app.api.deps import get_vector_store
+from app.api.deps import get_ask_service
 from app.core.dependencies import get_current_role
-from app.core.redis import get_redis_client
-from app.ingestion.pipeline import RAGPipeline
 from app.middleware.rate_limiter import limiter
-from app.observability.usage_tracker import UsageTracker, get_usage_tracker
-from app.retrieval.vector_store import VectorStore
 from app.schemas.ask import AskRequest, AskResponse
-from app.schemas.common import Source
-from app.services.chat_memory import get_chat_history, save_chat_history
-from app.services.response_cache import (
-    get_cached_response,
-    make_cache_key,
-    save_cached_response,
-)
+from app.services.ask_service import AskService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -36,13 +23,9 @@ async def ask_question(
     request: Request,
     response: Response,
     ask_request: AskRequest,
-    vs: Annotated[VectorStore, Depends(get_vector_store)],
-    tracker: Annotated[UsageTracker, Depends(get_usage_tracker)],
+    ask_service: Annotated[AskService, Depends(get_ask_service)],
     user_role: Annotated[str, Depends(get_current_role)],
-    redis: Redis = Depends(get_redis_client),
 ) -> AskResponse:
-    start_time = time.time()
-
     try:
         logger.info(
             "Question received | authenticated_role=%s | claimed_role=%s | query_length=%d",
@@ -51,131 +34,21 @@ async def ask_question(
             len(ask_request.query),
         )
 
-        history = await get_chat_history(ask_request.session_id, redis)
-        history.append({"role": "user", "content": ask_request.query})
-
-        cache_key = make_cache_key(
-            query=ask_request.query,
-            role=user_role,
-            limit=ask_request.limit,
+        result = await ask_service.answer_question(
+            ask_request=ask_request,
+            user_role=user_role,
         )
 
-        cached_response = await get_cached_response(redis, cache_key)
+        cache_status = "MISS"
+        if result.metadata is not None:
+            cache_status = str(result.metadata.get("cache", "MISS"))
 
-        if cached_response is not None:
-            logger.info("Cache hit for ask endpoint")
-
-            cached_ask_response = AskResponse(**cached_response)
-
-            history.append({"role": "assistant", "content": cached_ask_response.answer})
-            await save_chat_history(ask_request.session_id, history, redis)
-
-            response.headers["X-Cache"] = "HIT"
-            response.headers["X-RateLimit-Limit"] = "10"
-            response.headers["X-RateLimit-Remaining"] = "unknown"
-
-            return cached_ask_response
-
-        logger.info("Cache miss for ask endpoint")
-        response.headers["X-Cache"] = "MISS"
-
-        context_query = ask_request.query
-        pipeline = RAGPipeline(vector_store=vs)
-
-        rag_response, chunks = await asyncio.to_thread(
-            pipeline.run,
-            query=context_query,
-            role=user_role,
-            limit=ask_request.limit,
-        )
-
-        history.append({"role": "assistant", "content": rag_response.answer})
-        await save_chat_history(ask_request.session_id, history, redis)
-
-        latency_sec = time.time() - start_time
-        latency_ms = latency_sec * 1000
-
-        query_tokens = max(len(ask_request.query) // 4, 1)
-
-        context_text = "\n\n".join([c.get("text", "") for c in chunks if isinstance(c, dict)])
-
-        context_tokens = len(context_text) // 4
-        prompt_tokens = query_tokens + context_tokens + 100
-        completion_tokens = len(rag_response.answer) // 4
-        total_tokens = prompt_tokens + completion_tokens
-
-        scores: list[float] = [
-            float(c["score"])
-            for c in chunks
-            if isinstance(c, dict) and isinstance(c.get("score"), (int, float))
-        ]
-
-        confidence = round(sum(scores) / len(scores), 3) if scores else 0.0
-
-        try:
-            tracker.track_request(
-                endpoint="ask",
-                embedding_tokens=query_tokens,
-                llm_prompt_tokens=prompt_tokens,
-                llm_completion_tokens=completion_tokens,
-                latency_ms=latency_ms,
-            )
-        except Exception as e:
-            logger.warning("Usage tracking failed: %s", str(e))
-
-        if rag_response.metadata is None:
-            rag_response.metadata = {}
-
-        rag_response.metadata.update(
-            {
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": total_tokens,
-                "latency_seconds": latency_sec,
-                "confidence": confidence,
-                "cache": "MISS",
-            }
-        )
-
+        response.headers["X-Cache"] = cache_status
         response.headers["X-RateLimit-Limit"] = "10"
         response.headers["X-RateLimit-Remaining"] = "unknown"
 
-        logger.info(
-            "Ask completed | latency=%.3fs | chunks=%d | context_used=%s | total_tokens=%d",
-            latency_sec,
-            len(chunks),
-            rag_response.context_used,
-            total_tokens,
-        )
-
-        rag_response.sources = [
-            Source(
-                document_id=str(c.get("document_id", "Unknown")),
-                chunk_id=int(c.get("chunk_id", 0)),
-                score=float(c.get("score", 0.0)),
-                text=str(c.get("text", "")),
-            )
-            for c in chunks
-            if isinstance(c, dict)
-        ]
-
-        await save_cached_response(
-            redis=redis,
-            cache_key=cache_key,
-            response_data=rag_response.model_dump(),
-        )
-
-        return rag_response
+        return result
 
     except Exception as exc:
         logger.exception("Ask endpoint failed")
-
-        try:
-            tracker.track_request(
-                endpoint="ask",
-                latency_ms=(time.time() - start_time) * 1000,
-            )
-        except Exception as e:
-            logger.warning("Failed to track request: %s", e)
-
         raise HTTPException(status_code=500, detail="Failed to process question") from exc

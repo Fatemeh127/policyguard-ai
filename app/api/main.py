@@ -30,7 +30,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting PolicyGuard AI API")
     logger.info("Environment: %s", settings.environment)
 
-    ensure_sample_data(force_reload=False)
+    if settings.load_sample_data:
+        ensure_sample_data(force_reload=False)
 
     yield
 
