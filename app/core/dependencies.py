@@ -12,7 +12,6 @@ from app.core.types import Role
 logger = logging.getLogger(__name__)
 
 
-
 def _auth_error(detail: str) -> HTTPException:
     """Build a standard API-key authentication error."""
 
@@ -64,4 +63,4 @@ async def get_current_role(
         raise _auth_error("Invalid API key")
 
     logger.debug("Authenticated request with role: %s", role)
-    return role  
+    return role

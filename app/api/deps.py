@@ -28,6 +28,7 @@ def get_vector_store() -> VectorStore:
 
     return _vector_store
 
+
 def get_ask_service(
     vs: Annotated[VectorStore, Depends(get_vector_store)],
     redis: Annotated[Redis, Depends(get_redis_client)],

@@ -57,9 +57,7 @@ class AskService:
 
             cached_ask_response = AskResponse(**cached_response)
 
-            history.append(
-                {"role": "assistant", "content": cached_ask_response.answer}
-            )
+            history.append({"role": "assistant", "content": cached_ask_response.answer})
             await save_chat_history(ask_request.session_id, history, self.redis)
 
             if cached_ask_response.metadata is None:
@@ -88,9 +86,7 @@ class AskService:
 
         query_tokens = max(len(ask_request.query) // 4, 1)
 
-        context_text = "\n\n".join(
-            [c.get("text", "") for c in chunks if isinstance(c, dict)]
-        )
+        context_text = "\n\n".join([c.get("text", "") for c in chunks if isinstance(c, dict)])
 
         context_tokens = len(context_text) // 4
         prompt_tokens = query_tokens + context_tokens + 100

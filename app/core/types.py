@@ -1,4 +1,4 @@
-""" Role type definition for user roles in the application."""
+"""Role type definition for user roles in the application."""
 
 from typing import Literal
 
