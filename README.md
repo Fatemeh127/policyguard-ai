@@ -550,7 +550,8 @@ MIT License — see [LICENSE](LICENSE) for details.
 **Fatemeh Abidizadegan** — AI Engineer
 
 - GitHub: [@Fatemeh127](https://github.com/Fatemeh127)
-
+- LinkedIn: [Fatemeh Abidizadegan](https:linkedin.com/in/fatemeh-abidizadegan)
+- Email: abidizadeganfateme@gmail.com
 ---
 
 *If you find this project useful, consider giving it a ⭐*
