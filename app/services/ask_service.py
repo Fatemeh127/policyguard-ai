@@ -8,7 +8,6 @@ from redis.asyncio import Redis
 
 from app.ingestion.pipeline import RAGPipeline
 from app.observability.usage_tracker import UsageTracker
-from app.retrieval.vector_store import VectorStore
 from app.schemas.ask import AskRequest, AskResponse
 from app.schemas.common import Source
 from app.services.chat_memory import get_chat_history, save_chat_history
@@ -26,11 +25,11 @@ class AskService:
 
     def __init__(
         self,
-        vector_store: VectorStore,
+        pipeline: RAGPipeline,
         redis: Redis,
         tracker: UsageTracker,
     ) -> None:
-        self.vector_store = vector_store
+        self.pipeline = pipeline
         self.redis = redis
         self.tracker = tracker
 
@@ -63,16 +62,21 @@ class AskService:
             if cached_ask_response.metadata is None:
                 cached_ask_response.metadata = {}
 
-            cached_ask_response.metadata["cache"] = "HIT"
+            latency_sec = time.time() - start_time
+
+            cached_ask_response.metadata.update(
+                {
+                    "cache": "HIT",
+                    "latency_seconds": latency_sec,
+                }
+            )
 
             return cached_ask_response
 
         logger.info("Cache miss for ask service")
 
-        pipeline = RAGPipeline(vector_store=self.vector_store)
-
         rag_response, chunks = await asyncio.to_thread(
-            pipeline.run,
+            self.pipeline.run,
             query=ask_request.query,
             role=user_role,
             limit=ask_request.limit,

@@ -7,15 +7,14 @@ from typing import Any
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.llm.safety import moderate_content
 from app.middleware.request_context import get_request_id
 from app.observability.trace_logger import TraceLogger
-from app.retrieval.retriever import retrieve_chunks_with_metadata
-from app.retrieval.vector_store import VectorStore
+from app.retrieval.retriever import RetrievalService
 from app.schemas.ask import AskResponse
-from app.services.rag.answer_generator import generate_rag_answer
-from app.services.rag.input_validator import validate_rag_input
-from app.services.rag.prompt_injection_detector import is_prompt_injection
+from app.services.rag.answer_generation_service import AnswerGenerationService
+from app.services.rag.input_validation_service import InputValidationService
+from app.services.rag.moderation_service import ModerationService
+from app.services.rag.prompt_injection_service import PromptInjectionService
 from app.services.rag.response_builder import (
     blocked_response,
     error_response,
@@ -28,8 +27,19 @@ logger = get_logger(__name__)
 class RAGPipeline:
     """Main Retrieval-Augmented Generation orchestration pipeline."""
 
-    def __init__(self, vector_store: VectorStore) -> None:
-        self.vector_store = vector_store
+    def __init__(
+        self,
+        retrieval_service: RetrievalService,
+        moderation_service: ModerationService,
+        prompt_injection_service: PromptInjectionService,
+        validation_service: InputValidationService,
+        answer_generation_service: AnswerGenerationService,
+    ):
+        self.retrieval_service = retrieval_service
+        self.moderation_service = moderation_service
+        self.prompt_injection_service = prompt_injection_service
+        self.validation_service = validation_service
+        self.answer_generation_service = answer_generation_service
 
     def run(
         self,
@@ -41,7 +51,7 @@ class RAGPipeline:
 
         start_time = time.perf_counter()
 
-        validation_error = validate_rag_input(
+        validation_error = self.validation_service.validate(
             query=query,
             role=role,
             limit=limit,
@@ -55,7 +65,7 @@ class RAGPipeline:
         try:
             # Safety
             with trace.span("input_safety"):
-                moderation = moderate_content(query)
+                moderation = self.moderation_service.check(query)
 
                 if moderation.blocked:
                     trace.log_blocked(moderation.reason or "moderation_blocked")
@@ -65,7 +75,7 @@ class RAGPipeline:
                 query = query.strip()
 
             # Prompt Injection
-            if is_prompt_injection(query):
+            if self.prompt_injection_service.detect(query):
                 trace.log_blocked("prompt_injection")
 
                 logger.warning(
@@ -77,9 +87,8 @@ class RAGPipeline:
 
             # Retrieval
             with trace.span("retrieval"):
-                chunks = retrieve_chunks_with_metadata(
+                chunks = self.retrieval_service.retrieve_chunks_with_metadata(
                     query=query,
-                    vector_store=self.vector_store,
                     role=role,
                     top_k=limit,
                 )
@@ -94,8 +103,6 @@ class RAGPipeline:
                     default=0.0,
                 )
 
-                # IMPORTANT:
-                # Observability must NEVER crash the pipeline
                 try:
                     trace.log_retrieval(
                         num_chunks=len(chunks),
@@ -118,7 +125,7 @@ class RAGPipeline:
 
             # Generation
             with trace.span("generation"):
-                result = generate_rag_answer(
+                result = self.answer_generation_service.generate(
                     query=query,
                     chunks=chunks,
                 )

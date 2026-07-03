@@ -10,7 +10,7 @@ from typing import Any
 
 from app.core.config import settings
 from app.llm.answer_service import generate_answer
-from app.retrieval.retriever import retrieve_chunks_with_metadata
+from app.retrieval.retriever import RetrievalService
 from app.retrieval.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 class EvaluationService:
     """Evaluate retrieval and generation quality for the RAG system."""
 
-    def __init__(self, vector_store: VectorStore | None = None) -> None:
-        self.vector_store = vector_store or VectorStore()
+    def __init__(self, retrieval_service: RetrievalService | None = None) -> None:
+        self.retrieval_service = retrieval_service or RetrievalService(VectorStore())
 
     def _score_answer_overlap(self, generated: str, expected: str) -> float:
         """
@@ -53,9 +53,8 @@ class EvaluationService:
 
         start_time = time.perf_counter()
 
-        chunks = retrieve_chunks_with_metadata(
+        chunks = self.retrieval_service.retrieve_chunks_with_metadata(
             query=question,
-            vector_store=self.vector_store,
             role=role,
             top_k=top_k,
             min_score=min_score,

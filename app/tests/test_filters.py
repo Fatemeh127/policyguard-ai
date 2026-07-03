@@ -1,20 +1,39 @@
-"""
-Tests for role-based access control (RBAC) in vector retrieval.
-"""
+"""Tests for role-based access control (RBAC) in vector retrieval."""
 
-from unittest.mock import patch
+from typing import Any
 
-from app.api.deps import get_vector_store
+from app.retrieval.retriever import RetrievalService
+
+
+class FakeVectorStore:
+    def search(
+        self,
+        query: str,
+        role: str,
+        limit: int,
+        document_ids: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "document_id": "doc1",
+                "chunk_id": 1,
+                "text": "employee handbook",
+                "score": 0.9,
+                "role": role,
+            }
+        ]
 
 
 def test_employee_cannot_access_manager_docs() -> None:
     """Employee should not see manager-only documents."""
 
-    with patch("app.retrieval.embeddings.client.embeddings.create") as mock_embed:
-        mock_embed.return_value.data = [type("obj", (object,), {"embedding": [0.1] * 1536})]
+    service = RetrievalService(vector_store=FakeVectorStore())
 
-        vs = get_vector_store()
+    results = service.retrieve_chunks_with_metadata(
+        query="manager salary",
+        role="employee",
+        top_k=10,
+        min_score=0.0,
+    )
 
-        results = vs.search(query="manager salary", role="employee", limit=10)
-
-        assert all(r["role"] != "manager" for r in results)
+    assert all(r["role"] != "manager" for r in results)

@@ -23,6 +23,7 @@ from app.middleware.request_context import (
     reset_request_id,
     set_request_id,
 )
+from app.retrieval.retriever import RetrievalService
 from app.retrieval.vector_store import VectorStore
 from app.services.evaluation_service import EvaluationService
 
@@ -107,7 +108,7 @@ def run_eval(
             len(dataset),
         )
 
-        service = EvaluationService(VectorStore())
+        service = EvaluationService(RetrievalService(VectorStore()))
 
         report = service.run_evaluation(dataset)
 
