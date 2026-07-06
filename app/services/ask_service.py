@@ -106,7 +106,8 @@ class AskService:
         confidence = round(sum(scores) / len(scores), 3) if scores else 0.0
 
         try:
-            self.tracker.track_request(
+            await asyncio.to_thread(
+                self.tracker.track_request,
                 endpoint="ask",
                 embedding_tokens=query_tokens,
                 llm_prompt_tokens=prompt_tokens,
@@ -146,5 +147,17 @@ class AskService:
             cache_key=cache_key,
             response_data=rag_response.model_dump(),
         )
+
+        latency_sec = time.time() - start_time
+        latency_ms = latency_sec * 1000
+
+        try:
+            await asyncio.to_thread(
+                self.tracker.track_request,
+                endpoint="ask",
+                latency_ms=latency_ms,
+            )
+        except Exception as e:
+            logger.warning("Usage tracking failed for cache hit: %s", str(e))
 
         return rag_response

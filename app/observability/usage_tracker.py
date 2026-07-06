@@ -177,6 +177,8 @@ class UsageTracker:
             return {"error": "metrics retrieval failed"}
 
 
-# Factory
+_usage_tracker = UsageTracker()
+
+
 def get_usage_tracker() -> UsageTracker:
-    return UsageTracker()
+    return _usage_tracker
