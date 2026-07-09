@@ -44,8 +44,6 @@ async def ask_question(
             cache_status = str(result.metadata.get("cache", "MISS"))
 
         response.headers["X-Cache"] = cache_status
-        response.headers["X-RateLimit-Limit"] = "10"
-        response.headers["X-RateLimit-Remaining"] = "unknown"
 
         return result
 

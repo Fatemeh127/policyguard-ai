@@ -9,7 +9,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import ask, eval, health, ingest
-from app.api.routes import metrics as metrics_route
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.startup import ensure_sample_data
@@ -78,5 +77,4 @@ async def root() -> dict[str, Any]:
 app.include_router(health.router, prefix="/api", tags=["Health"])
 app.include_router(ask.router, prefix="/api", tags=["Q&A"])
 app.include_router(ingest.router, prefix="/api", tags=["Ingestion"])
-app.include_router(metrics_route.router, prefix="/api", tags=["Metrics"])
 app.include_router(eval.router, prefix="/api/v1", tags=["Evaluation"])

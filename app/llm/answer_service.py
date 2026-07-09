@@ -7,7 +7,7 @@ from openai import OpenAI, OpenAIError
 
 from app.core.config import settings
 from app.llm.prompts import NO_CONTEXT_MESSAGE, SYSTEM_PROMPT_RAG, USER_PROMPT_TEMPLATE
-
+from app.observability.prometheus_metrics import openai_cost_total, openai_tokens_total
 logger = logging.getLogger(__name__)
 
 
@@ -17,6 +17,23 @@ class LLMClient(Protocol):
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         """Generate text from system and user prompts."""
         ...
+
+
+def calculate_chat_completion_cost(
+    prompt_tokens: int,
+    completion_tokens: int,
+) -> float:
+    """
+    Calculate OpenAI chat completion cost in USD.
+
+    settings.cost_input_per_m means cost per 1 million input tokens.
+    settings.cost_output_per_m means cost per 1 million output tokens.
+    """
+
+    input_cost = (prompt_tokens / 1_000_000) * settings.cost_input_per_m
+    output_cost = (completion_tokens / 1_000_000) * settings.cost_output_per_m
+
+    return input_cost + output_cost
 
 
 class OpenAIClient:
@@ -41,6 +58,22 @@ class OpenAIClient:
             temperature=settings.openai_temperature,
             max_tokens=settings.openai_max_tokens,
         )
+
+        if response.usage is not None:
+            prompt_tokens = response.usage.prompt_tokens
+            completion_tokens = response.usage.completion_tokens
+            total_tokens = response.usage.total_tokens
+
+            openai_tokens_total.labels(type="prompt").inc(prompt_tokens)
+            openai_tokens_total.labels(type="completion").inc(completion_tokens)
+            openai_tokens_total.labels(type="total").inc(total_tokens)
+
+            request_cost = calculate_chat_completion_cost(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+            )
+
+            openai_cost_total.inc(request_cost)
 
         return response.choices[0].message.content or ""
 

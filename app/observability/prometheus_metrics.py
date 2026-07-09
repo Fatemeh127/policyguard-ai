@@ -27,7 +27,7 @@ openai_tokens_total = Counter(
     ["type"],  # embedding, prompt, completion
 )
 
-openai_cost_total = Gauge(
+openai_cost_total = Counter(
     "openai_cost_total",
     "Total OpenAI cost in USD",
 )

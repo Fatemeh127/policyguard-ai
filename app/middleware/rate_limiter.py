@@ -39,6 +39,7 @@ limiter = Limiter(
     storage_uri=settings.redis_url,
     strategy=settings.rate_limit_strategy,
     enabled=settings.rate_limit_enabled,
+    headers_enabled=True,
 )
 
 
