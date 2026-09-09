@@ -16,7 +16,7 @@ class Chunk(TypedDict):
     end: int
 
 
-def chunk_text(text: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> list[Chunk]:
+def chunk_text(text: str, chunk_size: int = 500, chunk_overlap: int = 100) -> list[Chunk]:
 
     if not text or not text.strip():
         return []

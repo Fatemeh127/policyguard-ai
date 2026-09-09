@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 def recursive_chunk_text(
     text: str,
-    chunk_size: int = 1000,
-    chunk_overlap: int = 200,
+    chunk_size: int = 500,
+    chunk_overlap: int = 100,
     separators: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """

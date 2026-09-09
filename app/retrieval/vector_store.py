@@ -27,7 +27,7 @@ def _build_role_filter(role: str, document_ids: Sequence[str] | None) -> Filter:
 
     must_conditions: list[Any] = [FieldCondition(key="role", match=MatchValue(value=role))]
 
-    if document_ids:
+    if document_ids is not None:
         must_conditions.append(
             FieldCondition(
                 key="document_id",
