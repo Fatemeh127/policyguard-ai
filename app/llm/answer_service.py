@@ -8,6 +8,7 @@ from openai import OpenAI, OpenAIError
 from app.core.config import settings
 from app.llm.prompts import NO_CONTEXT_MESSAGE, SYSTEM_PROMPT_RAG, USER_PROMPT_TEMPLATE
 from app.observability.prometheus_metrics import openai_cost_total, openai_tokens_total
+
 logger = logging.getLogger(__name__)
 
 
