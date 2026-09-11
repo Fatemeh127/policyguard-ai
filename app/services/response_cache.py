@@ -1,7 +1,6 @@
 import hashlib
 import json
 import logging
-
 from typing import Any, cast
 
 from redis.asyncio import Redis
