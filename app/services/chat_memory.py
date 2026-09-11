@@ -50,7 +50,10 @@ async def get_chat_history(
         raw_data = await redis.get(_key(session_id))
 
     except Exception:
-        logger.exception("Redis GET failed for session %s", session_id)
+        logger.exception(
+            "Redis GET failed for session %s. Continuing without chat history.",
+            session_id,
+        )
         return []
 
     if raw_data is None:
@@ -62,13 +65,19 @@ async def get_chat_history(
         messages = json.loads(data)
 
         if not isinstance(messages, list):
-            logger.warning("Unexpected Redis data type for session %s", session_id)
+            logger.warning(
+                "Unexpected Redis data type for session %s. " "Continuing without chat history.",
+                session_id,
+            )
             return []
 
         return messages
 
     except json.JSONDecodeError:
-        logger.warning("Corrupt JSON in Redis for session %s", session_id)
+        logger.warning(
+            "Corrupt JSON in Redis for session %s. " "Continuing without chat history.",
+            session_id,
+        )
         return []
 
 
@@ -77,7 +86,7 @@ async def save_chat_history(
     messages: list[dict[str, Any]],
     redis: Redis,
 ) -> None:
-    """Persist chat history for a session, capping at max configured messages."""
+    """Persist chat history without blocking the main application flow."""
 
     if len(messages) > settings.max_messages:
         messages = messages[-settings.max_messages :]
@@ -86,8 +95,11 @@ async def save_chat_history(
         payload = json.dumps(messages)
 
     except (TypeError, ValueError):
-        logger.exception("Failed to serialize messages for session %s", session_id)
-        raise
+        logger.exception(
+            "Failed to serialize chat history for session %s. " "Skipping chat history save.",
+            session_id,
+        )
+        return
 
     try:
         result = redis.setex(
@@ -99,15 +111,18 @@ async def save_chat_history(
         await _maybe_await_bool(result)
 
     except Exception:
-        logger.exception("Redis SETEX failed for session %s", session_id)
-        raise
+        logger.exception(
+            "Redis SETEX failed for session %s. " "Continuing without saving chat history.",
+            session_id,
+        )
+        return
 
 
 async def delete_chat_history(
     session_id: str,
     redis: Redis,
 ) -> None:
-    """Delete chat history for a session."""
+    """Delete chat history without blocking the main application flow."""
 
     try:
         result = redis.delete(_key(session_id))
@@ -115,5 +130,8 @@ async def delete_chat_history(
         await _maybe_await_int(result)
 
     except Exception:
-        logger.exception("Redis DELETE failed for session %s", session_id)
-        raise
+        logger.exception(
+            "Redis DELETE failed for session %s. " "Continuing without deleting chat history.",
+            session_id,
+        )
+        return

@@ -1,8 +1,12 @@
 import hashlib
 import json
+import logging
+
 from typing import Any, cast
 
 from redis.asyncio import Redis
+
+logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 3600  # 1 hour
 
@@ -18,7 +22,12 @@ async def get_cached_response(
     redis: Redis,
     cache_key: str,
 ) -> dict[str, Any] | None:
-    cached = await redis.get(cache_key)
+    try:
+        cached = await redis.get(cache_key)
+
+    except Exception:
+        logger.exception("Redis GET failed for cache key %s", cache_key)
+        return None
 
     if cached is None:
         return None
